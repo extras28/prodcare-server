@@ -1,0 +1,11 @@
+.DS_Store
+node_modules/
+*/node_modules/
+*/package-lock.json
+*/.env
+.env
+logs/
+*/logs/
+package-lock.json
+./public
+prodcare-static
