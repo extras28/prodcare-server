@@ -9,3 +9,4 @@ logs/
 package-lock.json
 ./public
 prodcare-static
+prodcare.tar

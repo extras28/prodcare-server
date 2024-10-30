@@ -272,6 +272,11 @@ export async function getStatisticThroughMonth(req, res, next) {
       .endOf("month")
       .format("YYYY-MM-DD HH:mm:ss");
 
+    const endOfPreviousMonth = moment(`${month}-01`)
+      .subtract(1, "day")
+      .endOf("day")
+      .format("YYYY-MM-DD HH:mm:ss");
+
     if (!projectId) throw new Error(ERROR_EMPTY_PROJECT);
 
     const [project, issueCount, cummulative, totalHandledInMonth] =
@@ -343,7 +348,7 @@ export async function getStatisticThroughMonth(req, res, next) {
         Issue.findOne({
           where: {
             project_id: projectId,
-            reception_time: { [Op.lte]: endTime },
+            reception_time: { [Op.lte]: endOfPreviousMonth },
             product_status: "DELIVERED",
           },
           attributes: [
@@ -497,7 +502,11 @@ export async function getStatisticThroughMonth(req, res, next) {
     const processedIssues = issueCount?.get("processedIssues") || 0;
 
     const remain = {};
-    remain.count = cummulativeIssues - processedIssuesCount + receptionIssues;
+    remain.count =
+      cummulativeIssues -
+      processedIssuesCount +
+      receptionIssues -
+      processedIssues;
     remain.handleInMonth = totalHandledInMonth - processedIssues;
     remain.totalProcessedIssue = processedIssuesCount - remain.handleInMonth;
 
@@ -551,6 +560,369 @@ export async function updateMultiIssue(req, res, next) {
 export async function getStatisticThroughWeek(req, res, next) {
   try {
     const { projectId, week } = req.query;
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getStatisticThroughQuarter(req, res, next) {
+  try {
+    const { projectId, year, quarter } = req.query;
+
+    const startTime = moment(year)
+      .add(quarter - 1, "quarter")
+      .startOf("quarter")
+      .format("YYYY-MM-DD HH:mm:ss");
+
+    const endTime = moment(year)
+      .add(quarter - 1, "quarter")
+      .endOf("quarter")
+      .format("YYYY-MM-DD HH:mm:ss");
+
+    const endOfPreviousQuarter = moment(startTime)
+      .subtract(1, "quarter")
+      .endOf("quarter")
+      .format("YYYY-MM-DD HH:mm:ss");
+
+    if (!projectId) throw new Error(ERROR_EMPTY_PROJECT);
+
+    const [
+      project,
+      issueCount,
+      cummulative,
+      totalHandledInQuarter,
+      remainIssue,
+    ] = await Promise.all([
+      Project.findOne({
+        where: { id: projectId },
+        include: [
+          {
+            model: Product,
+            attributes: [],
+            include: [
+              {
+                model: Customer,
+                attributes: [],
+              },
+            ],
+          },
+        ],
+        attributes: [
+          "id",
+          "project_name",
+          [
+            Sequelize.fn(
+              "COUNT",
+              Sequelize.fn("DISTINCT", Sequelize.col("products.customer_id"))
+            ),
+            "customerCount",
+          ],
+        ],
+        group: ["projects.id"],
+      }),
+      Issue.findOne({
+        where: {
+          project_id: projectId,
+          reception_time: { [Op.between]: [startTime, endTime] },
+          product_status: "DELIVERED",
+        },
+        attributes: [
+          [
+            Sequelize.fn(
+              "COALESCE",
+              Sequelize.fn("COUNT", Sequelize.col("id")),
+              0
+            ),
+            "receptionIssues",
+          ],
+          [
+            Sequelize.fn(
+              "COALESCE",
+              Sequelize.literal(
+                `COUNT(CASE WHEN status = 'PROCESSED' AND completion_time BETWEEN '${startTime}' AND '${endTime}' THEN 1 END)`
+              ),
+              0
+            ),
+            "processedIssues",
+          ],
+          [
+            Sequelize.fn(
+              "COALESCE",
+              Sequelize.literal(
+                "SUM(CASE WHEN impact IN ('YES', 'RESTRICTION') THEN 1 ELSE 0 END)"
+              ),
+              0
+            ),
+            "notReadyFightingIssues",
+          ],
+          [
+            Sequelize.fn(
+              "COALESCE",
+              Sequelize.literal(
+                "SUM(CASE WHEN level IN ('CRITICAL', 'MAJOR') THEN 1 ELSE 0 END)"
+              ),
+              0
+            ),
+            "criticalIssue",
+          ],
+          [
+            Sequelize.fn(
+              "COALESCE",
+              Sequelize.literal(
+                "SUM(CASE WHEN level = 'MODERATE' THEN 1 ELSE 0 END)"
+              ),
+              0
+            ),
+            "moderateIssue",
+          ],
+          [
+            Sequelize.fn(
+              "COALESCE",
+              Sequelize.literal(
+                "SUM(CASE WHEN level = 'MINOR' THEN 1 ELSE 0 END)"
+              ),
+              0
+            ),
+            "minorIssue",
+          ],
+          [
+            Sequelize.fn(
+              "COALESCE",
+              Sequelize.literal(
+                "SUM(CASE WHEN stop_fighting = true THEN 1 ELSE 0 END)"
+              ),
+              0
+            ),
+            "stopFightingIssue",
+          ],
+          [
+            Sequelize.fn(
+              "COALESCE",
+              Sequelize.literal(
+                "SUM(CASE WHEN stop_fighting = true THEN handling_time ELSE 0 END)"
+              ),
+              0
+            ),
+            "stopFightingTime",
+          ],
+        ],
+      }),
+      Issue.findOne({
+        where: {
+          project_id: projectId,
+          reception_time: { [Op.lte]: endOfPreviousQuarter },
+          product_status: "DELIVERED",
+        },
+        attributes: [
+          [
+            Sequelize.fn(
+              "COALESCE",
+              Sequelize.fn(
+                "COUNT",
+                Sequelize.literal(
+                  `CASE WHEN completion_time >= :startTime OR completion_time IS NULL THEN id END`
+                )
+              ),
+              0
+            ),
+            "cummulativeIssues",
+          ],
+          [
+            Sequelize.fn(
+              "COALESCE",
+              Sequelize.literal(
+                `COUNT(CASE WHEN status = 'PROCESSED' AND completion_time <= :endTime THEN 1 END)`
+              ),
+              0
+            ),
+            "processedIssuesCount",
+          ],
+          [
+            Sequelize.fn(
+              "COALESCE",
+              Sequelize.literal(
+                "SUM(CASE WHEN impact IN ('YES', 'RESTRICTION') THEN 1 ELSE 0 END)"
+              ),
+              0
+            ),
+            "impactReadyFightingIssue",
+          ],
+        ],
+        replacements: { startTime, endTime },
+      }),
+      Issue.count({
+        where: {
+          project_id: projectId,
+          completion_time: { [Op.between]: [startTime, endTime] },
+          status: "PROCESSED",
+          product_status: "DELIVERED",
+        },
+      }),
+      Issue.findOne({
+        where: {
+          project_id: projectId,
+          reception_time: { [Op.lte]: endTime },
+          product_status: "DELIVERED",
+          status: { [Op.in]: ["PROCESSING", "UNPROCESSED"] },
+        },
+        attributes: [
+          [
+            Sequelize.fn(
+              "COALESCE",
+              Sequelize.literal(
+                "SUM(CASE WHEN level IN ('CRITICAL', 'MAJOR') THEN 1 ELSE 0 END)"
+              ),
+              0
+            ),
+            "criticalIssue",
+          ],
+          [
+            Sequelize.fn(
+              "COALESCE",
+              Sequelize.literal(
+                "SUM(CASE WHEN level = 'MODERATE' THEN 1 ELSE 0 END)"
+              ),
+              0
+            ),
+            "moderateIssue",
+          ],
+          [
+            Sequelize.fn(
+              "COALESCE",
+              Sequelize.literal(
+                "SUM(CASE WHEN level = 'MINOR' THEN 1 ELSE 0 END)"
+              ),
+              0
+            ),
+            "minorIssue",
+          ],
+        ],
+      }),
+    ]);
+
+    const hoursInQuarter =
+      (moment(endTime).diff(startTime, "days") + 1) *
+      24 *
+      project?.get("customerCount");
+
+    const warranty = await Issue.findOne({
+      where: {
+        project_id: projectId,
+        completion_time: { [Op.between]: [startTime, endTime] },
+        product_status: "DELIVERED",
+      },
+      attributes: [
+        [
+          Sequelize.fn(
+            "COALESCE",
+            Sequelize.literal(
+              `CASE
+                    WHEN SUM(CASE WHEN stop_fighting = true THEN handling_time ELSE 0 END) = 0
+                    THEN 0
+                    ELSE SUM(CASE WHEN stop_fighting = true THEN handling_time ELSE 0 END) / NULLIF(${
+                      issueCount?.get("notReadyFightingIssues") ?? 0
+                    }, 0)
+                END`
+            ),
+            0
+          ),
+          "notReadyFightingWarrantyTime",
+        ],
+        [
+          Sequelize.fn(
+            "COALESCE",
+            Sequelize.literal(
+              `CASE
+                    WHEN SUM(handling_time) = 0
+                    THEN 0
+                    ELSE SUM(handling_time) / NULLIF(${
+                      issueCount?.get("receptionIssues") || 0
+                    }, 0)
+                END`
+            ),
+            0
+          ),
+          "allErrorWarrantyTime",
+        ],
+        [
+          Sequelize.fn(
+            "COALESCE",
+            Sequelize.literal(
+              `CASE
+                    WHEN ${issueCount.get("customerCount") ?? 0} = 0 THEN 100
+                    WHEN ${hoursInQuarter} = 0 THEN 100
+                    ELSE (${hoursInQuarter} - SUM(CASE WHEN stop_fighting = true THEN handling_time ELSE 0 END)) / ${hoursInQuarter} * 100
+                  END`
+            ),
+            0
+          ),
+          "kcd",
+        ],
+        [
+          Sequelize.fn(
+            "COALESCE",
+            Sequelize.literal(
+              `CASE
+                    WHEN ${issueCount.get("customerCount") ?? 0} = 0 THEN 100
+                    WHEN ${hoursInQuarter} = 0 THEN 100
+                    ELSE (${hoursInQuarter} - SUM(handling_time)) / ${hoursInQuarter} * 100
+                  END`
+            ),
+            0
+          ),
+          "kkt",
+        ],
+        [
+          Sequelize.fn(
+            "COALESCE",
+            Sequelize.literal(
+              `CASE
+                  WHEN ${project.get("customerCount") ?? 0} = 0 THEN 0
+                  ELSE SUM(CASE WHEN overdue_kpi = false THEN 1 ELSE 0 END) / NULLIF(${totalHandledInQuarter}, 0)
+                END`
+            ),
+            0
+          ),
+          "handlingRate",
+        ],
+      ],
+    });
+
+    const cummulativeIssues = cummulative.get("cummulativeIssues") || 0;
+    const processedIssuesCount = cummulative.get("processedIssuesCount") || 0;
+    const receptionIssues = issueCount.get("receptionIssues") || 0;
+    const processedIssues = issueCount?.get("processedIssues") || 0;
+
+    const remain = {};
+    remain.count =
+      cummulativeIssues -
+      processedIssuesCount +
+      receptionIssues -
+      processedIssues;
+    remain.handleInQuarter = totalHandledInQuarter - processedIssues;
+    remain.totalProcessedIssue = processedIssuesCount - remain.handleInQuarter;
+
+    const averageTimeError = {};
+    averageTimeError.notReadyFightingError =
+      issueCount.get("notReadyFightingIssues") == 0
+        ? 0
+        : hoursInQuarter / issueCount.get("notReadyFightingIssues");
+    averageTimeError.allError =
+      issueCount.get("receptionIssues") == 0
+        ? 0
+        : hoursInQuarter / issueCount.get("receptionIssues");
+
+    res.send({
+      result: "success",
+      project,
+      issueCount,
+      remain,
+      cummulative,
+      totalHandledInQuarter,
+      warranty,
+      averageTimeError,
+      remainIssue,
+    });
   } catch (error) {
     next(error);
   }

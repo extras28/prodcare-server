@@ -11,8 +11,14 @@ dashboardRouter.get(
 );
 
 dashboardRouter.get(
+  "/dashboard/quarter",
+  authorizationMiddleware,
+  dashboardController.getStatisticThroughQuarter
+);
+
+dashboardRouter.get(
   "/dashboard/month",
-  // authorizationMiddleware,
+  authorizationMiddleware,
   dashboardController.getStatisticThroughMonth
 );
 
