@@ -45,7 +45,7 @@ export async function createCustomer(req, res, next) {
 
 export async function getListCustomer(req, res, next) {
   try {
-    let { q, page, limit, militaryRegion } = req.query;
+    let { q, page, limit, militaryRegion, projectId } = req.query;
 
     q = q ?? "";
 

@@ -1,15 +1,15 @@
 import { Router } from "express";
-
-export const customerRouter = Router();
 import * as customerController from "../controllers/customer.controller.js";
 import { authorizationMiddleware } from "../middlewares/authorization.middleware.js";
-import { requireAdminMiddleware } from "../middlewares/require_admin.middleware.js";
+import { requireAtLeastOperator } from "../middlewares/require_at_least_operator.middleware.js";
 import * as customerValidator from "./validators/customer.validator.js";
+
+export const customerRouter = Router();
 
 customerRouter.post(
   "/customer/create",
   authorizationMiddleware,
-  requireAdminMiddleware,
+  requireAtLeastOperator,
   customerValidator.createCustomerValidator,
   customerController.createCustomer
 );
@@ -23,14 +23,14 @@ customerRouter.get(
 customerRouter.put(
   "/customer/update",
   authorizationMiddleware,
-  requireAdminMiddleware,
+  requireAtLeastOperator,
   customerController.updateCustomer
 );
 
 customerRouter.delete(
   "/customer/delete",
   authorizationMiddleware,
-  requireAdminMiddleware,
+  requireAtLeastOperator,
   customerController.deleteCustomer
 );
 

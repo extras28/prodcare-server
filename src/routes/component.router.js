@@ -1,8 +1,8 @@
 import { Router } from "express";
-import { authorizationMiddleware } from "../middlewares/authorization.middleware.js";
-import { requireAdminMiddleware } from "../middlewares/require_admin.middleware.js";
 import * as componentController from "../controllers/component.controller.js";
+import { authorizationMiddleware } from "../middlewares/authorization.middleware.js";
 import { checkingProjectPm } from "../middlewares/checking_project_pm.middleware.js";
+import { requireAtLeastOperator } from "../middlewares/require_at_least_operator.middleware.js";
 
 export const componentRouter = Router();
 
@@ -10,7 +10,7 @@ componentRouter.post(
   "/component/create",
   authorizationMiddleware,
   checkingProjectPm,
-  requireAdminMiddleware,
+  requireAtLeastOperator,
   componentController.createComponent
 );
 
@@ -24,14 +24,14 @@ componentRouter.put(
   "/component/update",
   authorizationMiddleware,
   checkingProjectPm,
-  requireAdminMiddleware,
+  requireAtLeastOperator,
   componentController.updateComponent
 );
 
 componentRouter.delete(
   "/component/delete",
   authorizationMiddleware,
-  requireAdminMiddleware,
+  requireAtLeastOperator,
   componentController.deleteComponent
 );
 

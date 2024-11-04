@@ -1,17 +1,17 @@
 import { Router } from "express";
+import * as productController from "../controllers/product.controller.js";
+import { authorizationMiddleware } from "../middlewares/authorization.middleware.js";
+import { checkingProjectPm } from "../middlewares/checking_project_pm.middleware.js";
+import { requireAtLeastOperator } from "../middlewares/require_at_least_operator.middleware.js";
+import * as productValidator from "./validators/product.validator.js";
 
 export const productRouter = Router();
-import * as productController from "../controllers/product.controller.js";
-import * as productValidator from "./validators/product.validator.js";
-import { authorizationMiddleware } from "../middlewares/authorization.middleware.js";
-import { requireAdminMiddleware } from "../middlewares/require_admin.middleware.js";
-import { checkingProjectPm } from "../middlewares/checking_project_pm.middleware.js";
 
 productRouter.post(
   "/product/create",
   authorizationMiddleware,
   checkingProjectPm,
-  requireAdminMiddleware,
+  requireAtLeastOperator,
   productValidator.createProductValidator,
   productController.createProduction
 );
@@ -26,14 +26,14 @@ productRouter.put(
   "/product/update",
   authorizationMiddleware,
   checkingProjectPm,
-  requireAdminMiddleware,
+  requireAtLeastOperator,
   productController.updateProduct
 );
 
 productRouter.delete(
   "/product/delete",
   authorizationMiddleware,
-  requireAdminMiddleware,
+  requireAtLeastOperator,
   productController.deleteProduct
 );
 

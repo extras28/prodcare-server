@@ -23,7 +23,7 @@ export async function authorizationMiddleware(req, res, next) {
       req.header("x-forwarded-for") != null
         ? req.header("x-forwarded-for")
         : req.connection.remoteAddress
-    } token:${accessToken}`
+    } token:${accessToken} \n`
   );
 
   if (accessToken) {

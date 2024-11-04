@@ -4,6 +4,7 @@ import { Product } from "../models/product.model.js";
 import { Project } from "../models/project.model.js";
 import {
   ERROR_INVALID_PARAMETERS,
+  ERROR_MFG_IS_AFTER_HANDED_OVER_TIME,
   ERROR_PRODUCT_EXISTED,
   ERROR_PRODUCT_NOT_EXISTED,
 } from "../shared/errors/error.js";
@@ -12,6 +13,7 @@ import { Customer } from "../models/customer.model.js";
 import { Issue } from "../models/issue.model.js";
 import { Account } from "../models/account.model.js";
 import { Event } from "../models/event.model.js";
+import moment from "moment";
 
 export async function createProduction(req, res, next) {
   try {
@@ -31,6 +33,9 @@ export async function createProduction(req, res, next) {
     const product = await Product.findOne({ where: { serial: serial } });
 
     if (!!product) throw new Error(ERROR_PRODUCT_EXISTED);
+
+    if (moment(mfg).isAfter(moment(handedOverTime)))
+      throw new Error(ERROR_MFG_IS_AFTER_HANDED_OVER_TIME);
 
     const newProduct = await Product.create(
       removeEmptyFields({
@@ -153,6 +158,9 @@ export async function updateProduct(req, res, next) {
     if (!product?.toJSON()) {
       throw new Error(ERROR_PRODUCT_NOT_EXISTED);
     }
+
+    if (moment(mfg).isAfter(moment(handedOverTime)))
+      throw new Error(ERROR_MFG_IS_AFTER_HANDED_OVER_TIME);
 
     await product.update(
       removeEmptyFields({

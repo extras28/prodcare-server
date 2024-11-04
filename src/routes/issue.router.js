@@ -1,9 +1,9 @@
 import { Router } from "express";
 import * as issueController from "../controllers/issue.controller.js";
 import { authorizationMiddleware } from "../middlewares/authorization.middleware.js";
-import { requireAdminMiddleware } from "../middlewares/require_admin.middleware.js";
 import { checkingProjectPm } from "../middlewares/checking_project_pm.middleware.js";
 import { uploadWithoutStoreFile } from "../middlewares/file_upload.middleware.js";
+import { requireAtLeastOperator } from "../middlewares/require_at_least_operator.middleware.js";
 
 export const issueRouter = Router();
 
@@ -11,7 +11,7 @@ issueRouter.post(
   "/issue/create",
   authorizationMiddleware,
   checkingProjectPm,
-  requireAdminMiddleware,
+  requireAtLeastOperator,
   issueController.createIssue
 );
 
@@ -25,14 +25,14 @@ issueRouter.put(
   "/issue/update",
   authorizationMiddleware,
   checkingProjectPm,
-  requireAdminMiddleware,
+  requireAtLeastOperator,
   issueController.updateIssue
 );
 
 issueRouter.delete(
   "/issue/delete",
   authorizationMiddleware,
-  requireAdminMiddleware,
+  requireAtLeastOperator,
   issueController.deleteIssue
 );
 
@@ -40,7 +40,7 @@ issueRouter.post(
   "/issue/upload",
   authorizationMiddleware,
   checkingProjectPm,
-  requireAdminMiddleware,
+  requireAtLeastOperator,
   uploadWithoutStoreFile.single("file"),
   issueController.uploadExcelFile
 );

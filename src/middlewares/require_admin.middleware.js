@@ -1,4 +1,3 @@
-import { Account } from "../models/account.model.js";
 import { ERROR_INSUFFICIENT_PERMISSIONS } from "../shared/errors/error.js";
 
 export async function requireAdminMiddleware(req, res, next) {

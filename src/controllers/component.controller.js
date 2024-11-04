@@ -1,19 +1,20 @@
+import _ from "lodash";
 import { Op } from "sequelize";
+import { Account } from "../models/account.model.js";
 import { Component } from "../models/component.model.js";
+import { Event } from "../models/event.model.js";
+import { Issue } from "../models/issue.model.js";
+import { Product } from "../models/product.model.js";
 import {
   ERROR_COMPONENT_EXISTED,
   ERROR_COMPONENT_NOT_EXISTED,
   ERROR_COMPONENT_PARENT_IS_REQUIRED,
+  ERROR_INVALID_COMPONENT_LEVEL,
   ERROR_INVALID_PARAMETERS,
+  ERROR_MAX_COMPONENT_LEVEL,
   ERROR_PRODUCT_IS_REQUIRED,
 } from "../shared/errors/error.js";
 import { isValidNumber, removeEmptyFields } from "../shared/utils/utils.js";
-import _ from "lodash";
-import { Project } from "../models/project.model.js";
-import { Product } from "../models/product.model.js";
-import { Event } from "../models/event.model.js";
-import { Issue } from "../models/issue.model.js";
-import { Account } from "../models/account.model.js";
 
 export async function createComponent(req, res, next) {
   try {
@@ -31,6 +32,10 @@ export async function createComponent(req, res, next) {
     const component = await Component.findOne({ where: { serial: serial } });
 
     if (!!component) throw new Error(ERROR_COMPONENT_EXISTED);
+
+    if (Number(level) > 3) throw new Error(ERROR_MAX_COMPONENT_LEVEL);
+
+    if (Number(level) < 1) throw new Error(ERROR_INVALID_COMPONENT_LEVEL);
 
     if (Number(level) > 1 && !parentId)
       throw new Error(ERROR_COMPONENT_PARENT_IS_REQUIRED);
@@ -158,6 +163,10 @@ export async function updateComponent(req, res, next) {
     if (!component?.toJSON()) {
       throw new Error(ERROR_COMPONENT_NOT_EXISTED);
     }
+
+    if (Number(level) > 3) throw new Error(ERROR_MAX_COMPONENT_LEVEL);
+
+    if (Number(level) < 1) throw new Error(ERROR_INVALID_COMPONENT_LEVEL);
 
     if (Number(level) > 1 && !parentId)
       throw new Error(ERROR_COMPONENT_PARENT_IS_REQUIRED);

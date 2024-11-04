@@ -6,3 +6,4 @@ prodcare.tar;
 .env;
 .env.example;
 .gitignore;
+.git;

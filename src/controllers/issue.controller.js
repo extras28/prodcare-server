@@ -162,6 +162,7 @@ export async function getListIssue(req, res, next) {
       customerId,
       componentId,
       type,
+      level,
     } = req.query;
 
     q = q ?? "";
@@ -194,6 +195,7 @@ export async function getListIssue(req, res, next) {
         !!productId ? { product_id: productId } : undefined,
         !!customerId ? { customer_id: customerId } : undefined,
         !!componentId ? { component_id: componentId } : undefined,
+        !!level ? { level: level } : undefined,
       ].filter(Boolean),
     };
 

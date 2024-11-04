@@ -1,4 +1,4 @@
-import { ERROR_INSUFFICIENT_PERMISSIONS } from "../shared/errors/error";
+import { ERROR_INSUFFICIENT_PERMISSIONS } from "../shared/errors/error.js";
 
 export async function requireAtLeastOperator(req, res, next) {
   try {
