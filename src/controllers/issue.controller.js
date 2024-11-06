@@ -1,5 +1,19 @@
-import { Op } from "sequelize";
+import _ from "lodash";
+import moment from "moment";
+import { Op, Sequelize } from "sequelize";
+import * as XLSX from "xlsx";
+import { Account } from "../models/account.model.js";
+import { Component } from "../models/component.model.js";
+import { Customer } from "../models/customer.model.js";
+import { Event } from "../models/event.model.js";
 import { Issue } from "../models/issue.model.js";
+import { Product } from "../models/product.model.js";
+import { Project } from "../models/project.model.js";
+import {
+  errorLevels,
+  scopeOfImpacts,
+  urgencyLevels,
+} from "../shared/constants/constant.js";
 import {
   ERROR_EMPTY_COMPLETION_TIME,
   ERROR_INVALID_PARAMETERS,
@@ -12,20 +26,6 @@ import {
   normalizeString,
   removeEmptyFields,
 } from "../shared/utils/utils.js";
-import _ from "lodash";
-import { Project } from "../models/project.model.js";
-import * as XLSX from "xlsx";
-import { Product } from "../models/product.model.js";
-import { Customer } from "../models/customer.model.js";
-import { Event } from "../models/event.model.js";
-import { Account } from "../models/account.model.js";
-import { Component } from "../models/component.model.js";
-import moment from "moment";
-import {
-  errorLevels,
-  scopeOfImpacts,
-  urgencyLevels,
-} from "../shared/constants/constant.js";
 
 export async function createIssue(req, res, next) {
   try {
@@ -163,6 +163,8 @@ export async function getListIssue(req, res, next) {
       componentId,
       type,
       level,
+      startTime,
+      endTime,
     } = req.query;
 
     q = q ?? "";
@@ -171,19 +173,14 @@ export async function getListIssue(req, res, next) {
 
     if (req.account.role === "USER") {
       const userProjects = await Project.findAll({
-        where: { project_pm: req.account.email }, // Assuming project_pm is the email of the account
-        attributes: ["id"], // Fetch only the project IDs
+        where: { project_pm: req.account.email },
+        attributes: ["id"],
       });
 
       projectIds = userProjects.map((project) => project.id);
     }
 
     const conditions = {
-      // [Op.or]: [
-      //   {
-      //     description: { [Op.like]: `%${q}%` },
-      //   },
-      // ],
       [Op.and]: [
         !!status ? { status } : undefined,
         !!type ? { type } : undefined,
@@ -196,15 +193,20 @@ export async function getListIssue(req, res, next) {
         !!customerId ? { customer_id: customerId } : undefined,
         !!componentId ? { component_id: componentId } : undefined,
         !!level ? { level: level } : undefined,
+        !!startTime && !!endTime
+          ? {
+              [Op.between]: [
+                moment(startTime).startOf("day").format("YYYY-MM-DD HH:mm:ss"),
+                moment(endTime).endOf("day").format("YYYY-MM-DD HH:mm:ss"),
+              ],
+            }
+          : undefined,
       ].filter(Boolean),
     };
 
     let issues;
 
     if (!isValidNumber(limit) || !isValidNumber(page)) {
-      page = undefined;
-      limit = undefined;
-
       issues = await Issue.findAndCountAll({
         where: conditions,
         order: [["id", "DESC"]],
@@ -237,6 +239,14 @@ export async function getListIssue(req, res, next) {
           { model: Component },
         ],
       });
+    }
+
+    // Add component path for each issue
+    for (const issue of issues.rows) {
+      if (issue.component) {
+        issue.dataValues.componentPath =
+          await issue.component.getComponentPath();
+      }
     }
 
     res.send({
@@ -491,7 +501,7 @@ export async function uploadExcelFile(req, res, next) {
                 : "MATERIAL",
             responsible_type_description:
               item["Phân loại trách nhiệm/vật tư lỗi"],
-            handling_measures: item["Giải pháp sửa chữa"],
+            handling_plan: item["Giải pháp sửa chữa"],
             responsible_handling_unit: item["Trách nhiệm xử lý lỗi"],
             unhandle_reason_description:
               item["Hiện trạng xử lý/ Lý do nếu chưa xử lý xong"],
@@ -563,6 +573,95 @@ export async function getIssueDetail(req, res, next) {
 
     res.send({ result: "success", issue, events });
   } catch (error) {
+    next(error);
+  }
+}
+
+export async function getListOfReason(req, res, next) {
+  try {
+    const { projectId } = req.query;
+
+    // Get the latest `id` for each `reason`
+    const latestIds = await Issue.findAll({
+      where: {
+        project_id: projectId,
+        reason: { [Op.ne]: null },
+      },
+      attributes: [[Sequelize.fn("MAX", Sequelize.col("id")), "id"]],
+      group: ["reason"],
+      raw: true,
+    });
+
+    const latestIdsArray = latestIds.map((record) => record.id);
+
+    // Retrieve full records for each latest `id`
+    const reasons = await Issue.findAll({
+      where: {
+        id: { [Op.in]: latestIdsArray },
+      },
+      attributes: [
+        "reason",
+        "responsible_type",
+        "level",
+        "overdue_kpi_reason",
+        "impact",
+        "stop_fighting",
+        "unhandle_reason",
+        "handling_measures",
+        "scope_of_impact",
+        "impact_point",
+        "urgency_level",
+        "urgency_point",
+      ],
+      order: [["id", "DESC"]],
+    });
+
+    res.send({ result: "success", total: reasons.length, reasons });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function swapHandlingMeasureAndHandlingPlan(req, res, next) {
+  const { projectId } = req.body;
+  const allowedMeasures = [
+    "REPLACE_DEVICE",
+    "REPAIR",
+    "REPLACE_OR_REPAIR",
+    "PRESERVE",
+    "CALIBRATE",
+    "UPDATE_FW_SW",
+    "UPDATE_XLTT_SOFTWARE",
+    "UPDATE_XLTH_SOFTWARE",
+    "RE_SOLDER_HIGH_FREQUENCY_CABLE",
+    "CHECK_SYSTEM_AGAIN",
+  ];
+
+  try {
+    // Start a transaction
+    const transaction = await Issue.sequelize.transaction();
+
+    const issues = await Issue.findAll({ where: { project_id: projectId } });
+
+    for (const issue of issues) {
+      // Swap only if handling_measure is not in the allowed list
+      if (!allowedMeasures.includes(issue.handling_measures)) {
+        // Swap the values
+        const updatedFields = {
+          handling_plan: issue.handling_measures,
+          handling_measures: issue.handling_plan,
+        };
+
+        // Update the record in the database
+        await issue.update(updatedFields, { transaction });
+      }
+    }
+
+    // Commit the transaction
+    await transaction.commit();
+    res.send({ result: "success" });
+  } catch (error) {
+    if (transaction) await transaction.rollback();
     next(error);
   }
 }

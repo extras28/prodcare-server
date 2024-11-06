@@ -50,3 +50,14 @@ issueRouter.get(
   authorizationMiddleware,
   issueController.getIssueDetail
 );
+
+issueRouter.get(
+  "/issue/reason",
+  authorizationMiddleware,
+  issueController.getListOfReason
+);
+
+issueRouter.post(
+  "/issue/swap",
+  issueController.swapHandlingMeasureAndHandlingPlan
+);

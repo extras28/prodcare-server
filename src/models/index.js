@@ -2,21 +2,22 @@ import { AccessToken } from "./access_token.model.js";
 import { Account } from "./account.model.js";
 import { Component } from "./component.model.js";
 import { Customer } from "./customer.model.js";
-import { Product } from "./product.model.js";
+import { Event } from "./event.model.js";
 import { Issue } from "./issue.model.js";
+import { Product } from "./product.model.js";
 import { Project } from "./project.model.js";
 import { Version } from "./version.model.js";
-import { Event } from "./event.model.js";
 
 export * from "./access_token.model.js";
 export * from "./account.model.js";
 export * from "./component.model.js";
 export * from "./customer.model.js";
-export * from "./product.model.js";
+export * from "./event.model.js";
 export * from "./issue.model.js";
+export * from "./product.model.js";
 export * from "./project.model.js";
 export * from "./version.model.js";
-export * from "./event.model.js";
+// export * from "./reason.model.js";
 
 // associations
 
@@ -136,3 +137,27 @@ Issue.belongsTo(Component, {
   targetKey: "id",
   onDelete: "CASCADE",
 });
+
+// Reason.belongsTo(Project, {
+//   foreignKey: "project_id",
+//   targetKey: "id",
+//   onDelete: "CASCADE",
+// });
+
+// Project.hasMany(Reason, {
+//   foreignKey: "project_id",
+//   sourceKey: "id",
+//   onDelete: "CASCADE",
+// });
+
+// Reason.hasMany(Issue, {
+//   foreignKey: "reason_id",
+//   sourceKey: "id",
+//   onDelete: "SET NULL",
+// });
+// Issue.belongsTo(Reason, {
+//   foreignKey: "reason_id",
+//   targetKey: "id",
+//   onDelete: "SET NULL",
+//   as: "reasonDetail", // Change 'as' to avoid naming collision
+// });

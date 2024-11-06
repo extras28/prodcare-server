@@ -20,3 +20,20 @@ export const Component = database.define(
   },
   { timestamps: false }
 );
+
+Component.prototype.getComponentPath = async function () {
+  let component = this;
+  let path = component.name;
+
+  // Traverse the component hierarchy to build the full path
+  while (component.parent_id) {
+    component = await Component.findByPk(component.parent_id);
+    if (component) {
+      path = component.name + "/" + path;
+    } else {
+      break;
+    }
+  }
+
+  return path;
+};
