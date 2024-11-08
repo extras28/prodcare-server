@@ -155,6 +155,7 @@ export async function getListIssue(req, res, next) {
       status,
       projectId,
       productId,
+      accountId,
       remainStatus,
       warrantyStatus,
       unhandleReason,
@@ -166,6 +167,15 @@ export async function getListIssue(req, res, next) {
       startTime,
       endTime,
     } = req.query;
+
+    startTime = startTime
+      ? moment(startTime, "YYYY-MM-DD")
+          .startOf("day")
+          .format("YYYY-MM-DD HH:mm:ss")
+      : "";
+    endTime = endTime
+      ? moment(endTime, "YYYY-MM-DD").endOf("day").format("YYYY-MM-DD HH:mm:ss")
+      : "";
 
     q = q ?? "";
 
@@ -190,15 +200,13 @@ export async function getListIssue(req, res, next) {
         !!responsibleType ? { responsible_type: responsibleType } : undefined,
         !!projectId ? { project_id: projectId } : undefined,
         !!productId ? { product_id: productId } : undefined,
+        !!accountId ? { account_id: accountId } : undefined,
         !!customerId ? { customer_id: customerId } : undefined,
         !!componentId ? { component_id: componentId } : undefined,
         !!level ? { level: level } : undefined,
         !!startTime && !!endTime
           ? {
-              [Op.between]: [
-                moment(startTime).startOf("day").format("YYYY-MM-DD HH:mm:ss"),
-                moment(endTime).endOf("day").format("YYYY-MM-DD HH:mm:ss"),
-              ],
+              reception_time: { [Op.between]: [startTime, endTime] },
             }
           : undefined,
       ].filter(Boolean),

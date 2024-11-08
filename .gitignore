@@ -10,3 +10,4 @@ package-lock.json
 ./public
 prodcare-static
 prodcare.tar
+docker-compose.yml

@@ -72,9 +72,15 @@ Issue.belongsTo(Project, {
   onDelete: "CASCADE",
 });
 
-Issue.hasOne(Account, {
-  foreignKey: "email",
-  sourceKey: "account_id",
+Issue.belongsTo(Account, {
+  targetKey: "email",
+  foreignKey: "account_id",
+  onDelete: "SET NULL",
+});
+
+Account.hasMany(Issue, {
+  foreignKey: "account_id",
+  sourceKey: "email",
   onDelete: "SET NULL",
 });
 

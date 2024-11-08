@@ -13,6 +13,7 @@ import {
   removeEmptyFields,
   removeFile,
 } from "../shared/utils/utils.js";
+import { Issue } from "../models/issue.model.js";
 
 export async function createNewUser(req, res, next) {
   const { email, name, employeeId, phone, title, dob, role, password } =
@@ -180,6 +181,23 @@ export async function deleteUser(req, res, next) {
     });
 
     res.send({ result: "success", deleteCount });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getUserDetail(req, res, next) {
+  try {
+    const { employeeId } = req.params;
+
+    const user = await Account.findOne({
+      where: { employee_id: employeeId },
+      include: [{ model: Issue }],
+    });
+
+    if (!user) throw new Error(ERROR_ACCOUNT_NOT_EXISTED);
+
+    res.send({ result: "success", user });
   } catch (error) {
     next(error);
   }

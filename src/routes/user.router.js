@@ -34,3 +34,9 @@ userRouter.delete(
   requireAdminMiddleware,
   userController.deleteUser
 );
+
+userRouter.get(
+  "/user/detail/:employeeId",
+  authorizationMiddleware,
+  userController.getUserDetail
+);

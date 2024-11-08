@@ -5,6 +5,7 @@ import { Issue } from "../models/issue.model.js";
 import { Product } from "../models/product.model.js";
 import { Project } from "../models/project.model.js";
 import { ERROR_EMPTY_PROJECT } from "../shared/errors/error.js";
+import { Component } from "../models/component.model.js";
 
 export async function getStatisticThroughYear(req, res, next) {
   try {
@@ -30,7 +31,7 @@ export async function getStatisticThroughYear(req, res, next) {
 
     if (!projectId) throw new Error(ERROR_EMPTY_PROJECT);
 
-    const [project, issueCounts, cummulative, issueInYears, cummulativeIssues] =
+    let [project, issueCounts, cummulative, issueInYears, cummulativeIssues] =
       await Promise.all([
         Project.findOne({
           where: { id: projectId },
@@ -255,14 +256,38 @@ export async function getStatisticThroughYear(req, res, next) {
             project_id: projectId,
             reception_time: { [Op.between]: [startTime, endTime] },
           },
+          include: [
+            { model: Project },
+            { model: Product },
+            { model: Component },
+          ],
         }),
         Issue.findAll({
           where: {
             project_id: projectId,
             reception_time: { [Op.lte]: endOfPreviousYear },
           },
+          include: [
+            { model: Project },
+            { model: Product },
+            { model: Component },
+          ],
         }),
       ]);
+
+    for (const issue of issueInYears) {
+      if (issue.component) {
+        issue.dataValues.componentPath =
+          await issue.component.getComponentPath();
+      }
+    }
+
+    for (const issue of cummulativeIssues) {
+      if (issue.component) {
+        issue.dataValues.componentPath =
+          await issue.component.getComponentPath();
+      }
+    }
     res.send({
       result: "success",
       project,
