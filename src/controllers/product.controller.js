@@ -96,25 +96,6 @@ export async function getListProductInTree(req, res, next) {
       ].filter(Boolean),
     };
 
-    const includes = [
-      {
-        model: Component,
-        as: "components",
-        include: [
-          {
-            model: Component,
-            as: "children",
-            include: [
-              {
-                model: Component,
-                as: "children",
-              },
-            ],
-          },
-        ],
-      },
-    ];
-
     let products;
 
     if (!isValidNumber(limit) || !isValidNumber(page)) {
