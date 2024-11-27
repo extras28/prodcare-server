@@ -175,29 +175,6 @@ export async function getListProductInTree(req, res, next) {
       });
     }
 
-    // const products = await Product.findAll({
-    //   where: conditions,
-    //   order: [["id", "DESC"]],
-    //   include: [
-    //     {
-    //       model: Component,
-    //       as: "components",
-    //       include: [
-    //         {
-    //           model: Component,
-    //           as: "children",
-    //           include: [
-    //             {
-    //               model: Component,
-    //               as: "children",
-    //             },
-    //           ],
-    //         },
-    //       ],
-    //     },
-    //   ],
-    // });
-
     const formatTreeWithPaths = async (components) =>
       Promise.all(
         components.map(async (component) => ({
