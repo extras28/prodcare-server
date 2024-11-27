@@ -14,6 +14,7 @@ import { Issue } from "../models/issue.model.js";
 import { Account } from "../models/account.model.js";
 import { Event } from "../models/event.model.js";
 import moment from "moment";
+import { Component } from "../models/component.model.js";
 
 export async function createProduction(req, res, next) {
   try {
@@ -53,6 +54,178 @@ export async function createProduction(req, res, next) {
     );
 
     res.send({ result: "success", product: newProduct });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getListProductInTree(req, res, next) {
+  try {
+    let { q, page, limit, type, projectId, productionBatchesId, customerId } =
+      req.query;
+
+    q = q ?? "";
+
+    let projectIds = [];
+
+    if (req.account.role === "USER") {
+      const userProjects = await Project.findAll({
+        where: { project_pm: req.account.email },
+        attributes: ["id"],
+      });
+
+      projectIds = userProjects.map((project) => project.id);
+    }
+
+    const conditions = {
+      [Op.or]: [
+        { serial: { [Op.like]: `%${q}%` } },
+        { status: { [Op.like]: `%${q}%` } },
+        { name: { [Op.like]: `%${q}%` } },
+      ],
+      [Op.and]: [
+        !!type ? { type } : undefined,
+        !!projectId ? { project_id: projectId } : undefined,
+        !!customerId ? { customer_id: customerId } : undefined,
+        !!productionBatchesId
+          ? { production_batches_id: productionBatchesId }
+          : undefined,
+        req.account.role === "USER"
+          ? { project_id: { [Op.in]: projectIds } }
+          : undefined,
+      ].filter(Boolean),
+    };
+
+    const includes = [
+      {
+        model: Component,
+        as: "components",
+        include: [
+          {
+            model: Component,
+            as: "children",
+            include: [
+              {
+                model: Component,
+                as: "children",
+              },
+            ],
+          },
+        ],
+      },
+    ];
+
+    let products;
+
+    if (!isValidNumber(limit) || !isValidNumber(page)) {
+      page = undefined;
+      limit = undefined;
+
+      products = await Product.findAndCountAll({
+        where: conditions,
+        order: [["id", "DESC"]],
+        include: [
+          {
+            model: Component,
+            as: "components",
+            include: [
+              {
+                model: Component,
+                as: "children",
+                include: [
+                  {
+                    model: Component,
+                    as: "children",
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+    } else {
+      limit = _.toNumber(limit);
+      page = _.toNumber(page);
+
+      products = await Product.findAndCountAll({
+        where: conditions,
+        limit,
+        offset: limit * page,
+        order: [["id", "DESC"]],
+        include: [
+          {
+            model: Component,
+            required: false, // Makes it a LEFT OUTER JOIN
+            where: { level: 1 },
+            as: "components",
+            include: [
+              {
+                model: Component,
+                as: "children",
+                include: [
+                  {
+                    model: Component,
+                    as: "children",
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+    }
+
+    // const products = await Product.findAll({
+    //   where: conditions,
+    //   order: [["id", "DESC"]],
+    //   include: [
+    //     {
+    //       model: Component,
+    //       as: "components",
+    //       include: [
+    //         {
+    //           model: Component,
+    //           as: "children",
+    //           include: [
+    //             {
+    //               model: Component,
+    //               as: "children",
+    //             },
+    //           ],
+    //         },
+    //       ],
+    //     },
+    //   ],
+    // });
+
+    const formatTreeWithPaths = async (components) =>
+      Promise.all(
+        components.map(async (component) => ({
+          key: component.id.toString(),
+          data: {
+            ...component.toJSON(),
+
+            fullPath: await component.getComponentPath(),
+          },
+          children: await formatTreeWithPaths(component.children || []),
+        }))
+      );
+
+    const formattedProducts = await Promise.all(
+      products.rows.map(async (product) => ({
+        key: product.id.toString(),
+        data: product.toJSON(),
+        children: await formatTreeWithPaths(product.components || []),
+      }))
+    );
+
+    res.send({
+      result: "success",
+      page,
+      total: products.count,
+      count: products.rows.length,
+      products: formattedProducts,
+    });
   } catch (error) {
     next(error);
   }

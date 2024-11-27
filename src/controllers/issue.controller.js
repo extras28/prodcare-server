@@ -491,7 +491,6 @@ export async function uploadExcelFile(req, res, next) {
             normalizeString(ul.value) ===
             normalizeString(item?.["Mức độ cấp thiết"])
         );
-        console.log(urgencyLevel);
 
         const newIssue = await Issue.create(
           removeEmptyFields({
@@ -645,10 +644,9 @@ export async function swapHandlingMeasureAndHandlingPlan(req, res, next) {
     "CHECK_SYSTEM_AGAIN",
   ];
 
+  const transaction = await Issue.sequelize.transaction();
+  // Start a transaction
   try {
-    // Start a transaction
-    const transaction = await Issue.sequelize.transaction();
-
     const issues = await Issue.findAll({ where: { project_id: projectId } });
 
     for (const issue of issues) {

@@ -42,7 +42,9 @@ Product.hasMany(Component, {
   foreignKey: "product_id",
   sourceKey: "id",
   onDelete: "CASCADE",
+  as: "components",
 });
+
 Component.belongsTo(Product, {
   foreignKey: "product_id",
   targetKey: "id",
@@ -91,6 +93,7 @@ AccessToken.belongsTo(Account, {
 });
 
 Component.hasMany(Component, {
+  as: "children",
   foreignKey: "parent_id",
   sourceKey: "id",
 });

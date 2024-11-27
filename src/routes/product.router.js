@@ -42,3 +42,9 @@ productRouter.get(
   authorizationMiddleware,
   productController.getProductDetail
 );
+
+productRouter.get(
+  "/product/list",
+  authorizationMiddleware,
+  productController.getListProductInTree
+);

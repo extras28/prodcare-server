@@ -38,9 +38,9 @@ issueRouter.delete(
 
 issueRouter.post(
   "/issue/upload",
-  authorizationMiddleware,
-  checkingProjectPm,
-  requireAtLeastOperator,
+  // authorizationMiddleware,
+  // checkingProjectPm,
+  // requireAtLeastOperator,
   uploadWithoutStoreFile.single("file"),
   issueController.uploadExcelFile
 );
