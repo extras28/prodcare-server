@@ -29,6 +29,7 @@ export async function createProduction(req, res, next) {
       mfg,
       handedOverTime,
       customerId,
+      warrantyStatus,
     } = req.body;
 
     const product = await Product.findOne({ where: { serial: serial } });
@@ -50,6 +51,7 @@ export async function createProduction(req, res, next) {
         mfg,
         handed_over_time: handedOverTime,
         customer_id: customerId,
+        warranty_status: warrantyStatus,
       })
     );
 
@@ -61,8 +63,27 @@ export async function createProduction(req, res, next) {
 
 export async function getListProductInTree(req, res, next) {
   try {
-    let { q, page, limit, type, projectId, productionBatchesId, customerId } =
-      req.query;
+    let {
+      q,
+      page,
+      limit,
+      type,
+      projectId,
+      productionBatchesId,
+      customerId,
+      status,
+      startTime,
+      endTime,
+    } = req.query;
+
+    startTime = startTime
+      ? moment(startTime, "YYYY-MM-DD")
+          .startOf("day")
+          .format("YYYY-MM-DD HH:mm:ss")
+      : "";
+    endTime = endTime
+      ? moment(endTime, "YYYY-MM-DD").endOf("day").format("YYYY-MM-DD HH:mm:ss")
+      : "";
 
     q = q ?? "";
 
@@ -80,18 +101,24 @@ export async function getListProductInTree(req, res, next) {
     const conditions = {
       [Op.or]: [
         { serial: { [Op.like]: `%${q}%` } },
-        { status: { [Op.like]: `%${q}%` } },
+
         { name: { [Op.like]: `%${q}%` } },
       ],
       [Op.and]: [
         !!type ? { type } : undefined,
         !!projectId ? { project_id: projectId } : undefined,
         !!customerId ? { customer_id: customerId } : undefined,
+        !!status ? { status: status } : undefined,
         !!productionBatchesId
           ? { production_batches_id: productionBatchesId }
           : undefined,
         req.account.role === "USER"
           ? { project_id: { [Op.in]: projectIds } }
+          : undefined,
+        !!startTime && !!endTime
+          ? {
+              handed_over_time: { [Op.between]: [startTime, endTime] },
+            }
           : undefined,
       ].filter(Boolean),
     };
@@ -111,9 +138,17 @@ export async function getListProductInTree(req, res, next) {
             as: "components",
             include: [
               {
+                model: Issue,
+                as: "issues",
+              },
+              {
                 model: Component,
                 as: "children",
                 include: [
+                  {
+                    model: Issue,
+                    as: "issues",
+                  },
                   {
                     model: Component,
                     as: "children",
@@ -121,6 +156,10 @@ export async function getListProductInTree(req, res, next) {
                 ],
               },
             ],
+          },
+          {
+            model: Issue,
+            as: "issues",
           },
         ],
       });
@@ -141,9 +180,17 @@ export async function getListProductInTree(req, res, next) {
             as: "components",
             include: [
               {
+                model: Issue,
+                as: "issues",
+              },
+              {
                 model: Component,
                 as: "children",
                 include: [
+                  {
+                    model: Issue,
+                    as: "issues",
+                  },
                   {
                     model: Component,
                     as: "children",
@@ -151,6 +198,10 @@ export async function getListProductInTree(req, res, next) {
                 ],
               },
             ],
+          },
+          {
+            model: Issue,
+            as: "issues",
           },
         ],
       });
@@ -279,6 +330,7 @@ export async function updateProduct(req, res, next) {
     mfg,
     handedOverTime,
     customerId,
+    warrantyStatus,
   } = req.body;
 
   try {
@@ -305,6 +357,7 @@ export async function updateProduct(req, res, next) {
         mfg,
         handed_over_time: handedOverTime,
         customer_id: customerId,
+        warranty_status: warrantyStatus,
       })
     );
 
@@ -339,7 +392,7 @@ export async function getProductDetail(req, res, next) {
         where: { id: id },
         include: [{ model: Project }, { model: Customer }],
       }),
-      Event.findAndCountAll({
+      Event.findAll({
         where: { product_id: id },
         order: [["id", "ASC"]],
         include: {
@@ -347,7 +400,7 @@ export async function getProductDetail(req, res, next) {
           attributes: ["email", "name", "avatar", "employee_id"],
         },
       }),
-      Issue.findAndCountAll({
+      Issue.findAll({
         where: { product_id: id },
         order: [["id", "DESC"]],
       }),

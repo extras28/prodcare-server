@@ -20,6 +20,7 @@ export const Product = database.define(
     handed_over_time: { type: DataTypes.DATE },
     exp_date: { type: DataTypes.DATE },
     customer_id: { type: DataTypes.BIGINT.UNSIGNED },
+    warranty_status: { type: DataTypes.STRING },
   },
   {
     timestamps: false,

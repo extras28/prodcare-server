@@ -27,6 +27,7 @@ export async function createComponent(req, res, next) {
       category,
       level,
       name,
+      version,
     } = req.body;
 
     const component = await Component.findOne({ where: { serial: serial } });
@@ -53,6 +54,7 @@ export async function createComponent(req, res, next) {
         category,
         level,
         name,
+        version,
       })
     );
 
@@ -153,6 +155,7 @@ export async function updateComponent(req, res, next) {
     category,
     level,
     name,
+    version,
   } = req.body;
 
   try {
@@ -181,6 +184,7 @@ export async function updateComponent(req, res, next) {
         category,
         level,
         name,
+        version,
       })
     );
 

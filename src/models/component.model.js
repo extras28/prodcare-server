@@ -17,6 +17,8 @@ export const Component = database.define(
     description: { type: DataTypes.TEXT },
     category: { type: DataTypes.STRING },
     level: { type: DataTypes.INTEGER.UNSIGNED },
+    version: { type: DataTypes.STRING },
+    status: { type: DataTypes.STRING },
   },
   { timestamps: false }
 );
