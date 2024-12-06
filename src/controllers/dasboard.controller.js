@@ -9,29 +9,19 @@ import { Component } from "../models/component.model.js";
 
 export async function getStatisticThroughYear(req, res, next) {
   try {
-    let { year, projectId } = req.query;
+    let { startTime, endTime, projectId } = req.query;
 
-    const startTime = moment()
-      .year(year)
-      .startOf("year")
-      .format("YYYY-MM-DD HH:mm:ss");
-    const endTime = moment()
-      .year(year)
-      .endOf("year")
-      .format("YYYY-MM-DD HH:mm:ss");
+    startTime = moment(startTime).startOf("day").format("YYYY-MM-DD HH:mm:ss");
+    endTime = moment(endTime).endOf("day").format("YYYY-MM-DD HH:mm:ss");
 
-    const endOfPreviousYear = moment(`${year}-01-01`)
+    const endOfPreviousYear = moment(startTime)
       .subtract(1, "day")
       .endOf("day")
-      .format("YYYY-MM-DD HH:mm:ss");
-    const startOfPreviousYear = moment(`${year}-01-01`)
-      .subtract(1, "year")
-      .startOf("year")
       .format("YYYY-MM-DD HH:mm:ss");
 
     if (!projectId) throw new Error(ERROR_EMPTY_PROJECT);
 
-    let [project, issueCounts, cummulative, issueInYears, cummulativeIssues] =
+    let [project, issueCounts, cumulative, issueInYears, cumulativeIssues] =
       await Promise.all([
         Project.findOne({
           where: { id: projectId },
@@ -156,21 +146,20 @@ export async function getStatisticThroughYear(req, res, next) {
             [
               Sequelize.literal(
                 `CASE 
-                  WHEN SUM(CASE WHEN impact IN ('YES', 'RESTRICTION') AND stop_fighting = true THEN 1 ELSE 0 END) = 0 
+                  WHEN SUM(CASE WHEN impact IN ('YES', 'RESTRICTION') THEN 1 ELSE 0 END) = 0 
                   THEN 0 
-                  ELSE SUM(CASE WHEN impact IN ('YES', 'RESTRICTION') AND stop_fighting = true THEN handling_time ELSE 0 END) / 
-                       SUM(CASE WHEN impact IN ('YES', 'RESTRICTION') AND stop_fighting = true THEN 1 ELSE 0 END) 
+                  ELSE SUM(CASE WHEN impact IN ('YES', 'RESTRICTION') THEN handling_time ELSE 0 END) / 
+                       SUM(CASE WHEN impact IN ('YES', 'RESTRICTION') THEN 1 ELSE 0 END) 
                 END`
               ),
               "warrantyForImpactFightingIssue",
             ],
-
             [
               Sequelize.literal(
                 `CASE 
-                  WHEN COUNT(CASE WHEN product_status = 'DELIVERED' THEN 1 ELSE NULL END) = 0 
+                  WHEN SUM(handling_time) = 0 
                   THEN 0 
-                  ELSE SUM(CASE WHEN product_status = 'DELIVERED' THEN handling_time ELSE 0 END) / COUNT(CASE WHEN product_status = 'DELIVERED' THEN 1 ELSE NULL END) 
+                  ELSE SUM(handling_time) / COUNT(id) 
                 END`
               ),
               "warrantyAllError",
@@ -190,7 +179,7 @@ export async function getStatisticThroughYear(req, res, next) {
                 Sequelize.fn("COUNT", Sequelize.col("id")),
                 0
               ),
-              "cummulativeIssues",
+              "cumulativeIssues",
             ],
             [
               Sequelize.fn(
@@ -206,7 +195,7 @@ export async function getStatisticThroughYear(req, res, next) {
               Sequelize.fn(
                 "COALESCE",
                 Sequelize.literal(
-                  `SUM(CASE WHEN status = 'PROCESSED' AND reception_time BETWEEN '${startOfPreviousYear}' AND '${endOfPreviousYear}' THEN 1 ELSE 0 END)`
+                  `SUM(CASE WHEN status = 'PROCESSED' AND reception_time <= '${endOfPreviousYear}' THEN 1 ELSE 0 END)`
                 ),
                 0
               ),
@@ -215,7 +204,7 @@ export async function getStatisticThroughYear(req, res, next) {
             [
               Sequelize.literal(
                 `COALESCE(
-                  SUM(CASE WHEN status = 'PROCESSED' AND reception_time BETWEEN '${startOfPreviousYear}' AND '${endOfPreviousYear}' THEN 1 ELSE 0 END) + 
+                  SUM(CASE WHEN status = 'PROCESSED' AND reception_time <= '${endOfPreviousYear}' THEN 1 ELSE 0 END) + 
                   (COUNT(id) - SUM(CASE WHEN status = 'PROCESSED' THEN 1 ELSE 0 END)), 0
                 )`
               ),
@@ -225,13 +214,13 @@ export async function getStatisticThroughYear(req, res, next) {
               Sequelize.literal(
                 `CASE 
                   WHEN (
-                    SUM(CASE WHEN status = 'PROCESSED' AND reception_time BETWEEN '${startOfPreviousYear}' AND '${endOfPreviousYear}' THEN 1 ELSE 0 END) + 
+                    SUM(CASE WHEN status = 'PROCESSED' AND reception_time <= '${endOfPreviousYear}' THEN 1 ELSE 0 END) + 
                     (COUNT(id) - SUM(CASE WHEN status = 'PROCESSED' THEN 1 ELSE 0 END))
                   ) = 0 
                   THEN 0 
                   ELSE (
-                    (SUM(CASE WHEN status = 'PROCESSED' AND reception_time BETWEEN '${startOfPreviousYear}' AND '${endOfPreviousYear}' THEN 1 ELSE 0 END) / 
-                    (SUM(CASE WHEN status = 'PROCESSED' AND reception_time BETWEEN '${startOfPreviousYear}' AND '${endOfPreviousYear}' THEN 1 ELSE 0 END) + 
+                    (SUM(CASE WHEN status = 'PROCESSED' AND reception_time <= '${endOfPreviousYear}' THEN 1 ELSE 0 END) / 
+                    (SUM(CASE WHEN status = 'PROCESSED' AND reception_time <= '${endOfPreviousYear}' THEN 1 ELSE 0 END) + 
                     (COUNT(id) - SUM(CASE WHEN status = 'PROCESSED' THEN 1 ELSE 0 END))) * 1.0) * 100
                   )
                 END`
@@ -282,7 +271,7 @@ export async function getStatisticThroughYear(req, res, next) {
       }
     }
 
-    for (const issue of cummulativeIssues) {
+    for (const issue of cumulativeIssues) {
       if (issue.component) {
         issue.dataValues.componentPath =
           await issue.component.getComponentPath();
@@ -292,9 +281,12 @@ export async function getStatisticThroughYear(req, res, next) {
       result: "success",
       project,
       issueCounts,
-      cummulative: { year: year - 1, ...cummulative },
+      cumulative: {
+        year: moment(endOfPreviousYear).format("YYYY-MM-DD"),
+        ...cumulative,
+      },
       issueInYears,
-      cummulativeIssues,
+      cumulativeIssues,
     });
   } catch (error) {
     next(error);
@@ -319,7 +311,7 @@ export async function getStatisticThroughMonth(req, res, next) {
 
     if (!projectId) throw new Error(ERROR_EMPTY_PROJECT);
 
-    const [project, issueCount, cummulative, totalHandledInMonth] =
+    const [project, issueCount, cumulative, totalHandledInMonth] =
       await Promise.all([
         Project.findOne({
           where: { id: projectId },
@@ -403,7 +395,7 @@ export async function getStatisticThroughMonth(req, res, next) {
                 ),
                 0
               ),
-              "cummulativeIssues",
+              "cumulativeIssues",
             ],
             [
               Sequelize.fn(
@@ -536,14 +528,14 @@ export async function getStatisticThroughMonth(req, res, next) {
       ],
     });
 
-    const cummulativeIssues = cummulative.get("cummulativeIssues") || 0;
-    const processedIssuesCount = cummulative.get("processedIssuesCount") || 0;
+    const cumulativeIssues = cumulative.get("cumulativeIssues") || 0;
+    const processedIssuesCount = cumulative.get("processedIssuesCount") || 0;
     const receptionIssues = issueCount.get("receptionIssues") || 0;
     const processedIssues = issueCount?.get("processedIssues") || 0;
 
     const remain = {};
     remain.count =
-      cummulativeIssues -
+      cumulativeIssues -
       processedIssuesCount +
       receptionIssues -
       processedIssues;
@@ -565,7 +557,7 @@ export async function getStatisticThroughMonth(req, res, next) {
       project,
       issueCount,
       remain,
-      cummulative,
+      cumulative,
       totalHandledInMonth,
       warranty,
       averageTimeError,
@@ -629,7 +621,7 @@ export async function getStatisticThroughQuarter(req, res, next) {
     const [
       project,
       issueCount,
-      cummulative,
+      cumulative,
       totalHandledInQuarter,
       remainIssue,
     ] = await Promise.all([
@@ -765,7 +757,7 @@ export async function getStatisticThroughQuarter(req, res, next) {
               ),
               0
             ),
-            "cummulativeIssues",
+            "cumulativeIssues",
           ],
           [
             Sequelize.fn(
@@ -928,14 +920,14 @@ export async function getStatisticThroughQuarter(req, res, next) {
       ],
     });
 
-    const cummulativeIssues = cummulative.get("cummulativeIssues") || 0;
-    const processedIssuesCount = cummulative.get("processedIssuesCount") || 0;
+    const cumulativeIssues = cumulative.get("cumulativeIssues") || 0;
+    const processedIssuesCount = cumulative.get("processedIssuesCount") || 0;
     const receptionIssues = issueCount.get("receptionIssues") || 0;
     const processedIssues = issueCount?.get("processedIssues") || 0;
 
     const remain = {};
     remain.count =
-      cummulativeIssues -
+      cumulativeIssues -
       processedIssuesCount +
       receptionIssues -
       processedIssues;
@@ -957,7 +949,7 @@ export async function getStatisticThroughQuarter(req, res, next) {
       project,
       issueCount,
       remain,
-      cummulative,
+      cumulative,
       totalHandledInQuarter,
       warranty,
       averageTimeError,
@@ -1154,7 +1146,7 @@ export async function getYearStatistic(req, res, next) {
                 Sequelize.fn("COUNT", Sequelize.col("id")),
                 0
               ),
-              "cummulativeIssues",
+              "cumulativeIssues",
             ],
             [
               Sequelize.fn(

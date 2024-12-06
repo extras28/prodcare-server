@@ -8,3 +8,15 @@ accountRouter.get(
   authorizationMiddleware,
   accountController.getAccountInformation
 );
+
+accountRouter.post(
+  "/account/issue-column",
+  authorizationMiddleware,
+  accountController.adjustIssueColumns
+);
+
+accountRouter.get(
+  "/account/get-issue-column",
+  authorizationMiddleware,
+  accountController.getIssueColumns
+);

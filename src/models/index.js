@@ -6,6 +6,7 @@ import { Event } from "./event.model.js";
 import { Issue } from "./issue.model.js";
 import { Product } from "./product.model.js";
 import { Project } from "./project.model.js";
+import { ShowingIssueColumn } from "./showing_issue_column.model.js";
 import { Version } from "./version.model.js";
 
 export * from "./access_token.model.js";
@@ -17,6 +18,7 @@ export * from "./issue.model.js";
 export * from "./product.model.js";
 export * from "./project.model.js";
 export * from "./version.model.js";
+export * from "./showing_issue_column.model.js";
 // export * from "./reason.model.js";
 
 // associations
@@ -144,6 +146,17 @@ Component.hasMany(Issue, {
 Issue.belongsTo(Component, {
   foreignKey: "component_id",
   targetKey: "id",
+  onDelete: "CASCADE",
+});
+
+ShowingIssueColumn.belongsTo(Account, {
+  foreignKey: "account_id",
+  targetKey: "email",
+  onDelete: "SET NULL",
+});
+Account.hasOne(ShowingIssueColumn, {
+  foreignKey: "account_id",
+  sourceKey: "email",
   onDelete: "CASCADE",
 });
 

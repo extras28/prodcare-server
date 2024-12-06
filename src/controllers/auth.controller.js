@@ -19,6 +19,7 @@ import {
   hashSHA256,
   isAllNumbers,
 } from "../shared/utils/utils.js";
+import { ShowingIssueColumn } from "../models/showing_issue_column.model.js";
 
 export async function signUp(req, res, next) {
   try {
@@ -46,6 +47,8 @@ export async function signUp(req, res, next) {
       employee_id: employeeId,
       role: "ADMIN",
     });
+
+    await ShowingIssueColumn.create({ account_id: email });
 
     res.send({ result: "success" });
   } catch (error) {
@@ -89,6 +92,14 @@ export async function signIn(req, res, next) {
       account_id: account.email,
       expiry_date: expireAt,
     });
+
+    // const existedColumn = await ShowingIssueColumn.findOne({
+    //   where: { account_id: username },
+    // });
+
+    // if (!existedColumn) {
+    //   await ShowingIssueColumn.create({ account_id: username });
+    // }
 
     res.status(200).send({
       result: "success",
