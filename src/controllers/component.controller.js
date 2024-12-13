@@ -14,7 +14,11 @@ import {
   ERROR_MAX_COMPONENT_LEVEL,
   ERROR_PRODUCT_IS_REQUIRED,
 } from "../shared/errors/error.js";
-import { isValidNumber, removeEmptyFields } from "../shared/utils/utils.js";
+import {
+  isValidNumber,
+  normalizeString,
+  removeEmptyFields,
+} from "../shared/utils/utils.js";
 
 export async function createComponent(req, res, next) {
   try {
@@ -28,11 +32,16 @@ export async function createComponent(req, res, next) {
       level,
       name,
       version,
+      status,
     } = req.body;
 
     const component = await Component.findOne({ where: { serial: serial } });
 
-    if (!!component) throw new Error(ERROR_COMPONENT_EXISTED);
+    if (
+      !!component &&
+      normalizeString(component.toJSON()?.serial) != "thieuserial"
+    )
+      throw new Error(ERROR_COMPONENT_EXISTED);
 
     if (Number(level) > 3) throw new Error(ERROR_MAX_COMPONENT_LEVEL);
 
@@ -55,6 +64,7 @@ export async function createComponent(req, res, next) {
         level,
         name,
         version,
+        status,
       })
     );
 
@@ -66,8 +76,17 @@ export async function createComponent(req, res, next) {
 
 export async function getListComponent(req, res, next) {
   try {
-    let { q, page, limit, type, level, parentId, productId, projectId } =
-      req.query;
+    let {
+      q,
+      page,
+      limit,
+      type,
+      level,
+      parentId,
+      productId,
+      projectId,
+      status,
+    } = req.query;
 
     q = q ?? "";
 
@@ -106,6 +125,7 @@ export async function getListComponent(req, res, next) {
         !!productId ? { product_id: productId } : undefined,
         !!parentId ? { parent_id: parentId } : undefined,
         !!level ? { level } : undefined,
+        !!status ? { status } : undefined,
         { product_id: { [Op.in]: productIds } },
       ].filter(Boolean),
     };
@@ -156,6 +176,7 @@ export async function updateComponent(req, res, next) {
     level,
     name,
     version,
+    status,
   } = req.body;
 
   try {
@@ -185,6 +206,7 @@ export async function updateComponent(req, res, next) {
         level,
         name,
         version,
+        status,
       })
     );
 

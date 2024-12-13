@@ -93,13 +93,16 @@ export async function signIn(req, res, next) {
       expiry_date: expireAt,
     });
 
-    // const existedColumn = await ShowingIssueColumn.findOne({
-    //   where: { account_id: username },
-    // });
+    const existedColumn = await ShowingIssueColumn.findOne({
+      where: { account_id: account?.toJSON()?.email },
+    });
 
-    // if (!existedColumn) {
-    //   await ShowingIssueColumn.create({ account_id: username });
-    // }
+    if (!existedColumn) {
+      await ShowingIssueColumn.create({
+        account_id: account?.toJSON()?.email,
+        columns: "1,2,3,4,5,6,7,8,36",
+      });
+    }
 
     res.status(200).send({
       result: "success",

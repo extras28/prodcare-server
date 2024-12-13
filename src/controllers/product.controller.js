@@ -1,5 +1,11 @@
 import _ from "lodash";
+import moment from "moment";
 import { Op } from "sequelize";
+import { Account } from "../models/account.model.js";
+import { Component } from "../models/component.model.js";
+import { Customer } from "../models/customer.model.js";
+import { Event } from "../models/event.model.js";
+import { Issue } from "../models/issue.model.js";
 import { Product } from "../models/product.model.js";
 import { Project } from "../models/project.model.js";
 import {
@@ -9,12 +15,6 @@ import {
   ERROR_PRODUCT_NOT_EXISTED,
 } from "../shared/errors/error.js";
 import { isValidNumber, removeEmptyFields } from "../shared/utils/utils.js";
-import { Customer } from "../models/customer.model.js";
-import { Issue } from "../models/issue.model.js";
-import { Account } from "../models/account.model.js";
-import { Event } from "../models/event.model.js";
-import moment from "moment";
-import { Component } from "../models/component.model.js";
 
 export async function createProduction(req, res, next) {
   try {
@@ -231,7 +231,7 @@ export async function getListProductInTree(req, res, next) {
     res.send({
       result: "success",
       page,
-      total: products.count,
+      total: formattedProducts.length,
       count: products.rows.length,
       products: formattedProducts,
     });
