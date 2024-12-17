@@ -11,3 +11,4 @@ package-lock.json
 prodcare-static
 prodcare.tar
 docker-compose.yml
+/*.ovpn
