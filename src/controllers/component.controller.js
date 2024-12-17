@@ -139,6 +139,10 @@ export async function getListComponent(req, res, next) {
       components = await Component.findAndCountAll({
         where: conditions,
         order: [["id", "DESC"]],
+        include: {
+          model: Issue,
+          as: "issues",
+        },
       });
     } else {
       limit = _.toNumber(limit);
@@ -149,6 +153,10 @@ export async function getListComponent(req, res, next) {
         limit,
         offset: limit * page,
         order: [["id", "DESC"]],
+        include: {
+          model: Issue,
+          as: "issues",
+        },
       });
     }
 
