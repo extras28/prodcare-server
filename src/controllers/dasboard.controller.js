@@ -29,12 +29,6 @@ export async function getStatisticThroughYear(req, res, next) {
             {
               model: Product,
               attributes: [],
-              include: [
-                {
-                  model: Customer,
-                  attributes: [], // No need to fetch customer details here, just counting
-                },
-              ],
             },
           ],
           attributes: [
@@ -43,7 +37,7 @@ export async function getStatisticThroughYear(req, res, next) {
             [
               Sequelize.fn(
                 "COUNT",
-                Sequelize.fn("DISTINCT", Sequelize.col("products.customer_id"))
+                Sequelize.fn("DISTINCT", Sequelize.col("products.id"))
               ),
               "customerCount",
             ],

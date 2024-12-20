@@ -228,10 +228,12 @@ export async function getListProductInTree(req, res, next) {
       }))
     );
 
+    const total = await Product.count({ where: { project_id: projectId } });
+
     res.send({
       result: "success",
       page,
-      total: formattedProducts.length,
+      total: total,
       count: products.rows.length,
       products: formattedProducts,
     });
