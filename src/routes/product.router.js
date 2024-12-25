@@ -48,3 +48,9 @@ productRouter.get(
   authorizationMiddleware,
   productController.getListProductInTree
 );
+
+productRouter.get(
+  "/product/excel",
+  authorizationMiddleware,
+  productController.exportFileAll
+);

@@ -415,3 +415,41 @@ export async function getProductDetail(req, res, next) {
     next(error);
   }
 }
+
+export async function exportFileAll(req, res, next) {
+  try {
+    const { projectId } = req.query;
+
+    let productIds = [];
+
+    const products = await Product.findAll({
+      where: { project_id: projectId ?? "" },
+      attributes: ["id"],
+    });
+
+    productIds = products.map((product) => product.id);
+
+    const components = await Component.findAll({
+      where: { product_id: { [Op.in]: productIds } },
+      include: [
+        {
+          model: Product,
+          as: "product",
+          include: {
+            model: Customer,
+            as: "customer",
+          },
+        },
+
+        {
+          model: Issue,
+          as: "issues",
+        },
+      ],
+    });
+
+    res.send({ result: "success", components });
+  } catch (error) {
+    next(error);
+  }
+}
