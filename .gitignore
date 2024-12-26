@@ -12,3 +12,4 @@ prodcare-static
 prodcare.tar
 docker-compose.yml
 /*.ovpn
+.vscode

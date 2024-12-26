@@ -9,6 +9,7 @@ import { ERROR_NOT_FOUND } from "./shared/errors/error.js";
 import { apiRouter } from "./routes/index.js";
 import path from "path";
 import { fileURLToPath } from "url";
+import { clearExpiredToken } from "./cronjobs/clear-expired-token.cron.js";
 
 // Create a variable for __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -57,6 +58,8 @@ async function start() {
   app.get("*", (req, res) => {
     res.sendFile(path.join(__dirname, "../prodcare-static", "index.html")); // Adjusted path
   });
+
+  clearExpiredToken();
 
   // Error handler
   app.use(errorHandlerMiddleware);

@@ -1,6 +1,6 @@
 import _ from "lodash";
 import moment from "moment";
-import { Op } from "sequelize";
+import { Op, Sequelize } from "sequelize";
 import { Account } from "../models/account.model.js";
 import { Component } from "../models/component.model.js";
 import { Customer } from "../models/customer.model.js";
@@ -294,6 +294,23 @@ export async function getListProduct(req, res, next) {
       products = await Product.findAndCountAll({
         where: conditions,
         order: [["id", "DESC"]],
+        include: [
+          {
+            model: Component,
+            as: "components",
+            attributes: [], // Exclude individual component fields to avoid clutter
+          },
+        ],
+        attributes: {
+          include: [
+            [
+              Sequelize.literal(
+                `(SELECT COUNT(*) FROM components WHERE components.product_id = product.id)`
+              ),
+              "componentCount", // Alias for the count of components
+            ],
+          ],
+        },
       });
     } else {
       limit = _.toNumber(limit);
@@ -304,6 +321,23 @@ export async function getListProduct(req, res, next) {
         limit,
         offset: limit * page,
         order: [["id", "DESC"]],
+        include: [
+          {
+            model: Component,
+            as: "components",
+            attributes: [], // Exclude individual component fields to avoid clutter
+          },
+        ],
+        attributes: {
+          include: [
+            [
+              Sequelize.literal(
+                `(SELECT COUNT(*) FROM components WHERE components.product_id = product.id)`
+              ),
+              "componentCount", // Alias for the count of components
+            ],
+          ],
+        },
       });
     }
 
@@ -431,6 +465,7 @@ export async function exportFileAll(req, res, next) {
 
     const components = await Component.findAll({
       where: { product_id: { [Op.in]: productIds } },
+      order: [["product_id", "DESC"]],
       include: [
         {
           model: Product,
