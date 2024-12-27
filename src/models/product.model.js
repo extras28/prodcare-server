@@ -15,7 +15,7 @@ export const Product = database.define(
     project_id: { type: DataTypes.STRING },
     version: { type: DataTypes.STRING },
     status: { type: DataTypes.STRING },
-    produontion_batches_id: { type: DataTypes.STRING },
+    production_batches_id: { type: DataTypes.STRING },
     mfg: { type: DataTypes.DATE },
     handed_over_time: { type: DataTypes.DATE },
     exp_date: { type: DataTypes.DATE },

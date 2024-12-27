@@ -19,6 +19,7 @@ import {
   normalizeString,
   removeEmptyFields,
 } from "../shared/utils/utils.js";
+import { Customer } from "../models/customer.model.js";
 
 export async function createComponent(req, res, next) {
   try {
@@ -86,39 +87,27 @@ export async function getListComponent(req, res, next) {
       productId,
       projectId,
       status,
+      customerId,
     } = req.query;
 
     q = q ?? "";
 
     let productIds = [];
 
-    // if (req.account.role === "USER") {
-    // const userProjects = await Project.findAll({
-    //   where: { project_pm: req.account.email }, // Assuming project_pm is the email of the account
-    //   attributes: ["id"], // Fetch only the project IDs
-    // });
-
-    // const projectIds = userProjects.map((project) => project.id);
-
+    // Retrieve product IDs based on projectId
     const products = await Product.findAll({
       where: { project_id: projectId ?? "" },
       attributes: ["id"],
     });
 
     productIds = products.map((product) => product.id);
-    // }
 
+    // Build conditions for filtering components
     const conditions = {
       [Op.or]: [
-        {
-          serial: { [Op.like]: `%${q}%` },
-        },
-        {
-          category: { [Op.like]: `%${q}%` },
-        },
-        {
-          name: { [Op.like]: `%${q}%` },
-        },
+        { serial: { [Op.like]: `%${q}%` } },
+        { category: { [Op.like]: `%${q}%` } },
+        { name: { [Op.like]: `%${q}%` } },
       ],
       [Op.and]: [
         !!type ? { type } : undefined,
@@ -130,35 +119,44 @@ export async function getListComponent(req, res, next) {
       ].filter(Boolean),
     };
 
-    let components;
+    // Add customer filter condition
+    const customerCondition = customerId
+      ? { id: customerId } // Filter by customer_id
+      : undefined;
 
-    if (!isValidNumber(limit) || !isValidNumber(page)) {
-      page = undefined;
-      limit = undefined;
-
-      components = await Component.findAndCountAll({
-        where: conditions,
-        order: [["id", "DESC"]],
-        include: {
+    // Define query options
+    const queryOptions = {
+      where: conditions,
+      order: [["product_id", "DESC"]],
+      include: [
+        {
           model: Issue,
           as: "issues",
         },
-      });
-    } else {
+        {
+          model: Product,
+          as: "product",
+          attributes: ["name", "serial", "customer_id"],
+          include: {
+            model: Customer,
+            as: "customer",
+            attributes: ["military_region", "name", "id"],
+            where: customerCondition,
+          },
+        },
+      ],
+    };
+
+    // Handle pagination
+    if (isValidNumber(limit) && isValidNumber(page)) {
       limit = _.toNumber(limit);
       page = _.toNumber(page);
-
-      components = await Component.findAndCountAll({
-        where: conditions,
-        limit,
-        offset: limit * page,
-        order: [["id", "DESC"]],
-        include: {
-          model: Issue,
-          as: "issues",
-        },
-      });
+      queryOptions.limit = limit;
+      queryOptions.offset = limit * page;
     }
+
+    // Fetch components
+    const components = await Component.findAndCountAll(queryOptions);
 
     res.send({
       result: "success",

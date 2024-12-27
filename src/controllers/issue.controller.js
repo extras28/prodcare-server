@@ -214,6 +214,26 @@ export async function getListIssue(req, res, next) {
 
     let issues;
 
+    const componentCondition = q
+      ? {
+          [Op.or]: {
+            serial: {
+              [Op.like]: `%${q}%`, // Use Op.like for partial matching
+            },
+          },
+        }
+      : undefined;
+
+    const productCondition = q
+      ? {
+          [Op.or]: {
+            serial: {
+              [Op.like]: `%${q}%`, // Use Op.like for partial matching in Product
+            },
+          },
+        }
+      : undefined;
+
     if (!isValidNumber(limit) || !isValidNumber(page)) {
       issues = await Issue.findAndCountAll({
         where: conditions,
@@ -224,8 +244,11 @@ export async function getListIssue(req, res, next) {
             attributes: ["email", "name", "avatar", "employee_id"],
           },
           { model: Project },
-          { model: Product },
-          { model: Component },
+          {
+            model: Product,
+            // where: productCondition,
+          },
+          { model: Component, where: componentCondition },
         ],
       });
     } else {
@@ -243,8 +266,14 @@ export async function getListIssue(req, res, next) {
             attributes: ["email", "name", "avatar", "employee_id"],
           },
           { model: Project },
-          { model: Product },
-          { model: Component },
+          {
+            model: Product,
+            // where: productCondition,
+          },
+          {
+            model: Component,
+            where: componentCondition,
+          },
         ],
       });
     }
