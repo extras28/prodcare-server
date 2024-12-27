@@ -201,20 +201,20 @@ export async function updateComponent(req, res, next) {
     if (Number(level) > 1 && !parentId)
       throw new Error(ERROR_COMPONENT_PARENT_IS_REQUIRED);
 
-    await component.update(
-      removeEmptyFields({
+    await component.update({
+      ...removeEmptyFields({
         parent_id: parentId,
         product_id: productId,
         type,
         serial,
-        description,
         category,
         level,
         name,
         version,
         status,
-      })
-    );
+      }),
+      description,
+    });
 
     res.send({ result: "success" });
   } catch (error) {

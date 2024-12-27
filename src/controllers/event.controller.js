@@ -143,8 +143,14 @@ export async function getListEvent(req, res, next) {
       const createdAt = moment(event.createdAt); // Convert createdAt to a moment object
       const diffInSeconds = currentTime.diff(createdAt, "seconds"); // Calculate the difference in seconds
 
-      // Add the time difference in seconds to the event object
-      event.setDataValue("timeDifferenceInSeconds", diffInSeconds);
+      const diffInWeeks = currentTime.diff(createdAt, "weeks");
+
+      if (diffInWeeks >= 1) {
+        event.setDataValue("timeDifferenceInSeconds", createdAt);
+      } else {
+        // Add the time difference in seconds to the event object
+        event.setDataValue("timeDifferenceInSeconds", diffInSeconds);
+      }
     });
 
     res.send({
