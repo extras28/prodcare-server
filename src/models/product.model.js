@@ -21,6 +21,7 @@ export const Product = database.define(
     exp_date: { type: DataTypes.DATE },
     customer_id: { type: DataTypes.BIGINT.UNSIGNED },
     warranty_status: { type: DataTypes.STRING },
+    situation: { type: DataTypes.STRING, defaultValue: "GOOD" },
   },
   {
     timestamps: false,

@@ -88,6 +88,7 @@ export async function getListComponent(req, res, next) {
       projectId,
       status,
       customerId,
+      situation,
     } = req.query;
 
     q = q ?? "";
@@ -115,6 +116,7 @@ export async function getListComponent(req, res, next) {
         !!parentId ? { parent_id: parentId } : undefined,
         !!level ? { level } : undefined,
         !!status ? { status } : undefined,
+        !!situation ? { situation } : undefined,
         { product_id: { [Op.in]: productIds } },
       ].filter(Boolean),
     };
@@ -157,6 +159,12 @@ export async function getListComponent(req, res, next) {
 
     // Fetch components
     const components = await Component.findAndCountAll(queryOptions);
+
+    for (const [index, component] of components.rows.entries()) {
+      // Calculate order number
+      component.dataValues.orderNumber =
+        index + 1 + (isValidNumber(limit) ? limit * page : 0);
+    }
 
     res.send({
       result: "success",
@@ -255,7 +263,7 @@ export async function getComponentDetail(req, res, next) {
           attributes: ["email", "name", "avatar", "employee_id"],
         },
       }),
-      Issue.findAndCountAll({
+      Issue.findAll({
         where: { component_id: id },
         order: [["id", "DESC"]],
       }),

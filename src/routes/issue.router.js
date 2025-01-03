@@ -61,3 +61,5 @@ issueRouter.post(
   "/issue/swap",
   issueController.swapHandlingMeasureAndHandlingPlan
 );
+
+issueRouter.put("/issue/situation", issueController.createSituation);

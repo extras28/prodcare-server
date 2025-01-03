@@ -39,7 +39,7 @@ export async function createIssue(req, res, next) {
       completionTime,
       handlingTime,
       description,
-      serverity,
+      severity,
       status,
       type,
       level,
@@ -95,7 +95,7 @@ export async function createIssue(req, res, next) {
         completion_time: completionTime,
         handling_time: handlingTime,
         description,
-        serverity,
+        severity,
         status,
         type,
         level,
@@ -139,6 +139,37 @@ export async function createIssue(req, res, next) {
         urgency_point: urgencyPoint,
       })
     );
+
+    const updateSituation = async (situation) => {
+      await Promise.all([
+        Product.update({ situation }, { where: { id: productId } }),
+        Component.update({ situation }, { where: { id: componentId } }),
+      ]);
+    };
+
+    if (status !== "PROCESSED") {
+      await updateSituation("DEFECTIVE");
+
+      if (!stopFighting) {
+        const stopFightingCount = await Issue.count({
+          where: { product_id: productId, stop_fighting: true },
+        });
+
+        if (stopFightingCount > 0) {
+          await updateSituation("DEFECTIVE");
+        } else {
+          await updateSituation("DEGRADED");
+        }
+      }
+    } else {
+      const processedIssueCount = await Issue.count({
+        where: { product_id: productId, status: { [Op.ne]: "PROCESSED" } },
+      });
+
+      if (processedIssueCount === 0) {
+        await updateSituation("GOOD");
+      }
+    }
 
     res.send({ result: "success", issue: newIssue });
   } catch (error) {
@@ -279,11 +310,15 @@ export async function getListIssue(req, res, next) {
     }
 
     // Add component path for each issue
-    for (const issue of issues.rows) {
+    for (const [index, issue] of issues.rows.entries()) {
       if (issue.component) {
         issue.dataValues.componentPath =
           await issue.component.getComponentPath();
       }
+
+      // Calculate order number
+      issue.dataValues.orderNumber =
+        index + 1 + (isValidNumber(limit) ? limit * page : 0);
     }
 
     res.send({
@@ -310,7 +345,7 @@ export async function updateIssue(req, res, next) {
     completionTime,
     handlingTime,
     description,
-    serverity,
+    severity,
     status,
     type,
     level,
@@ -376,7 +411,7 @@ export async function updateIssue(req, res, next) {
         completion_time: completionTime,
         handling_time: handlingTime,
         description,
-        serverity,
+        severity,
         status,
         type,
         level,
@@ -416,6 +451,37 @@ export async function updateIssue(req, res, next) {
         urgency_point: urgencyPoint,
       })
     );
+
+    const updateSituation = async (situation) => {
+      await Promise.all([
+        Product.update({ situation }, { where: { id: productId } }),
+        Component.update({ situation }, { where: { id: componentId } }),
+      ]);
+    };
+
+    if (status !== "PROCESSED") {
+      await updateSituation("DEFECTIVE");
+
+      if (!stopFighting) {
+        const stopFightingCount = await Issue.count({
+          where: { product_id: productId, stop_fighting: true },
+        });
+
+        if (stopFightingCount > 0) {
+          await updateSituation("DEFECTIVE");
+        } else {
+          await updateSituation("DEGRADED");
+        }
+      }
+    } else {
+      const processedIssueCount = await Issue.count({
+        where: { product_id: productId, status: { [Op.ne]: "PROCESSED" } },
+      });
+
+      if (processedIssueCount === 0) {
+        await updateSituation("GOOD");
+      }
+    }
 
     res.send({ result: "success" });
   } catch (error) {
@@ -697,6 +763,88 @@ export async function swapHandlingMeasureAndHandlingPlan(req, res, next) {
     res.send({ result: "success" });
   } catch (error) {
     if (transaction) await transaction.rollback();
+    next(error);
+  }
+}
+
+export async function createSituation(req, res, next) {
+  try {
+    const products = await Product.findAll({
+      attributes: ["id"],
+      include: {
+        model: Issue,
+        as: "issues",
+        attributes: ["status", "stop_fighting"],
+      },
+    });
+
+    const updatedProduct = products.map((product) => {
+      const issues = product.issues;
+
+      let active = "GOOD";
+
+      if (issues?.length > 0) {
+        const allProcessed = issues.every(
+          (item) => item?.status == "PROCESSED"
+        );
+        if (!allProcessed) {
+          const hasStopFighting = issues.some(
+            (item) => item?.stop_fighting && item?.status != "PROCESSED"
+          );
+          active = hasStopFighting ? "DEFECTIVE" : "DEGRADED";
+        }
+      }
+      return { id: product?.id, issues, situation: active };
+    });
+
+    await Promise.all(
+      updatedProduct.map(async (product) => {
+        await Product.update(
+          { situation: product.situation },
+          { where: { id: product.id } }
+        );
+      })
+    );
+
+    const components = await Component.findAll({
+      attributes: ["id"],
+      include: {
+        model: Issue,
+        as: "issues",
+        attributes: ["status", "stop_fighting"],
+      },
+    });
+
+    const updatedComponent = components.map((component) => {
+      const issues = component.issues;
+
+      let active = "GOOD";
+
+      if (issues?.length > 0) {
+        const allProcessed = issues.every(
+          (item) => item?.status == "PROCESSED"
+        );
+        if (!allProcessed) {
+          const hasStopFighting = issues.some(
+            (item) => item?.stop_fighting && item?.status != "PROCESSED"
+          );
+          active = hasStopFighting ? "DEFECTIVE" : "DEGRADED";
+        }
+      }
+      return { id: component?.id, issues, situation: active };
+    });
+
+    await Promise.all(
+      updatedComponent.map(async (component) => {
+        await Component.update(
+          { situation: component.situation },
+          { where: { id: component.id } }
+        );
+      })
+    );
+
+    res.send({ result: "success" });
+  } catch (error) {
     next(error);
   }
 }

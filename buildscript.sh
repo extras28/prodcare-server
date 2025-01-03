@@ -12,6 +12,11 @@ if [ "$1" == "server" ]; then
     # sudo openvpn guest-1.ovpn
     sudo scp prodcare.tar developer@112.10.0.100:/home/developer/dungna31
     ssh -t developer@112.10.0.100 'cd /home/developer/dungna31/prodcare && chmod +x buildscript.sh && sudo ./buildscript.sh && exec bash'
+    
+elif [ "$1" == "product" ]; then 
+    echo "Building product..."
+    ssh -t developer@112.10.0.100 'cd /home/developer/dungna31/prodcare && chmod +x buildscript.sh && sudo ./buildscript.sh && exec bash'
+
 else
     # Build and deploy the client
     echo "Building the client..."

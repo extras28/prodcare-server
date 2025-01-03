@@ -21,7 +21,7 @@ export const Issue = database.define(
       comment: "Thời gian xử lý/tồn (giờ)",
     },
     description: { type: DataTypes.TEXT, comment: "Hiện tượng" },
-    serverity: { type: DataTypes.STRING },
+    severity: { type: DataTypes.STRING },
     status: { type: DataTypes.ENUM("PROCESSED", "PROCESSING", "UNPROCESSED") },
     type: { type: DataTypes.ENUM("NEW", "REOCCURRING") },
 

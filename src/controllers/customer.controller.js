@@ -100,6 +100,12 @@ export async function getListCustomer(req, res, next) {
       });
     }
 
+    for (const [index, customer] of customers.rows.entries()) {
+      // Calculate order number
+      customer.dataValues.orderNumber =
+        index + 1 + (isValidNumber(limit) ? limit * page : 0);
+    }
+
     res.send({
       result: "success",
       page,

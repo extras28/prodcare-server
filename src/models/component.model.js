@@ -19,19 +19,20 @@ export const Component = database.define(
     level: { type: DataTypes.INTEGER.UNSIGNED },
     version: { type: DataTypes.STRING },
     status: { type: DataTypes.STRING },
+    situation: { type: DataTypes.STRING },
   },
   { timestamps: false }
 );
 
 Component.prototype.getComponentPath = async function () {
   let component = this;
-  let path = `${component.name}(${component.serial})`;
+  let path = `${component.name} (${component.serial})`;
 
   // Traverse the component hierarchy to build the full path
   while (component.parent_id) {
     component = await Component.findByPk(component.parent_id);
     if (component) {
-      path = `${component.name}(${component.serial})` + "/" + path;
+      path = `${component.name} (${component.serial})` + "/" + path;
     } else {
       break;
     }

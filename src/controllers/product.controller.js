@@ -74,6 +74,7 @@ export async function getListProductInTree(req, res, next) {
       status,
       startTime,
       endTime,
+      situation,
     } = req.query;
 
     startTime = startTime
@@ -109,6 +110,7 @@ export async function getListProductInTree(req, res, next) {
         !!projectId ? { project_id: projectId } : undefined,
         !!customerId ? { customer_id: customerId } : undefined,
         !!status ? { status: status } : undefined,
+        !!situation ? { situation: situation } : undefined,
         !!productionBatchesId
           ? { production_batches_id: productionBatchesId }
           : undefined,
@@ -124,6 +126,8 @@ export async function getListProductInTree(req, res, next) {
     };
 
     let products;
+
+    let total = 0;
 
     if (!isValidNumber(limit) || !isValidNumber(page)) {
       page = undefined;
@@ -205,6 +209,12 @@ export async function getListProductInTree(req, res, next) {
           },
         ],
       });
+
+      total = await Product.count({
+        where: conditions,
+        limit,
+        offset: limit * page,
+      });
     }
 
     const formatTreeWithPaths = async (components) =>
@@ -221,14 +231,15 @@ export async function getListProductInTree(req, res, next) {
       );
 
     const formattedProducts = await Promise.all(
-      products.rows.map(async (product) => ({
+      products.rows.map(async (product, index) => ({
         key: product.id.toString(),
-        data: product.toJSON(),
+        data: {
+          ...product.toJSON(),
+          orderNumber: index + 1 + (limit ?? 0) * (page ?? 0),
+        },
         children: await formatTreeWithPaths(product.components || []),
       }))
     );
-
-    const total = await Product.count({ where: { project_id: projectId } });
 
     res.send({
       result: "success",
