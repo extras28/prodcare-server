@@ -217,13 +217,14 @@ export async function getListProductInTree(req, res, next) {
       });
     }
 
+    let uniqueKeyCounter = 1; // Initialize a global counter for unique keys
+
     const formatTreeWithPaths = async (components) =>
       Promise.all(
         components.map(async (component) => ({
-          key: component.id.toString(),
+          key: (uniqueKeyCounter++).toString(), // Increment counter for a unique key
           data: {
             ...component.toJSON(),
-
             fullPath: await component.getComponentPath(),
           },
           children: await formatTreeWithPaths(component.children || []),
@@ -232,7 +233,7 @@ export async function getListProductInTree(req, res, next) {
 
     const formattedProducts = await Promise.all(
       products.rows.map(async (product, index) => ({
-        key: product.id.toString(),
+        key: (uniqueKeyCounter++).toString(), // Increment counter for a unique key
         data: {
           ...product.toJSON(),
           orderNumber: index + 1 + (limit ?? 0) * (page ?? 0),

@@ -180,6 +180,7 @@ export async function createIssue(req, res, next) {
 export async function getListIssue(req, res, next) {
   try {
     let {
+      stopFighting,
       q,
       page,
       limit,
@@ -198,6 +199,21 @@ export async function getListIssue(req, res, next) {
       startTime,
       endTime,
     } = req.query;
+
+    if (!!stopFighting !== "" && stopFighting !== undefined) {
+      switch (stopFighting) {
+        case "true":
+          stopFighting = true;
+          break;
+
+        case "false":
+          stopFighting = false;
+          break;
+
+        default:
+          break;
+      }
+    }
 
     startTime = startTime
       ? moment(startTime, "YYYY-MM-DD")
@@ -234,6 +250,11 @@ export async function getListIssue(req, res, next) {
         !!accountId ? { account_id: accountId } : undefined,
         !!customerId ? { customer_id: customerId } : undefined,
         !!componentId ? { component_id: componentId } : undefined,
+        !!stopFighting !== "" &&
+        stopFighting !== undefined &&
+        stopFighting !== ""
+          ? { stop_fighting: stopFighting }
+          : undefined,
         !!level ? { level: level } : undefined,
         !!startTime && !!endTime
           ? {

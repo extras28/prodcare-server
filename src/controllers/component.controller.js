@@ -109,6 +109,7 @@ export async function getListComponent(req, res, next) {
         { serial: { [Op.like]: `%${q}%` } },
         { category: { [Op.like]: `%${q}%` } },
         { name: { [Op.like]: `%${q}%` } },
+        { version: { [Op.like]: `%${q}%` } },
       ],
       [Op.and]: [
         !!type ? { type } : undefined,
