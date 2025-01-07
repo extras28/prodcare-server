@@ -24,6 +24,7 @@ import { Customer } from "../models/customer.model.js";
 export async function createComponent(req, res, next) {
   try {
     const {
+      temporarilyUse,
       parentId,
       productId,
       type,
@@ -54,20 +55,29 @@ export async function createComponent(req, res, next) {
     if (Number(level) == 1 && !productId)
       throw new Error(ERROR_PRODUCT_IS_REQUIRED);
 
-    const newComponent = await Component.create(
-      removeEmptyFields({
-        parent_id: parentId,
-        product_id: productId,
-        type,
-        serial,
-        description,
-        category,
-        level,
-        name,
-        version,
-        status,
-      })
-    );
+    const newComponentData = removeEmptyFields({
+      parent_id: parentId,
+      product_id: productId,
+      type,
+      serial,
+      description,
+      category,
+      level,
+      name,
+      version,
+      status: status || (temporarilyUse === "YES" ? "DEGRADED" : ""),
+      temporarily_use: temporarilyUse,
+    });
+
+    const promises = [Component.create(newComponentData)];
+
+    if (temporarilyUse === "YES") {
+      promises.push(
+        Product.update({ situation: "DEGRADED" }, { where: { id: productId } })
+      );
+    }
+
+    const [newComponent] = await Promise.all(promises);
 
     res.send({ result: "success", component: newComponent });
   } catch (error) {
@@ -181,6 +191,7 @@ export async function getListComponent(req, res, next) {
 
 export async function updateComponent(req, res, next) {
   const {
+    temporarilyUse,
     componentId,
     parentId,
     productId,
@@ -221,9 +232,50 @@ export async function updateComponent(req, res, next) {
         name,
         version,
         status,
+        temporarily_use: temporarilyUse,
+        situation: temporarilyUse == "YES" ? "DEGRADED" : "",
       }),
       description,
     });
+
+    if (temporarilyUse == "YES") {
+      await Product.update(
+        { situation: "DEGRADED" },
+        { where: { id: productId } }
+      );
+      await Issue.update(
+        { temporarily_use: "YES" },
+        { where: { component_id: componentId } }
+      );
+    } else {
+      await Issue.update(
+        { temporarily_use: "NO" },
+        { where: { component_id: componentId } }
+      );
+      const issueProcessedCount = await Issue.count({
+        where: { component_id: componentId, status: { [Op.ne]: "PROCESSED" } },
+      });
+
+      if (issueProcessedCount > 0) {
+        await Product.update(
+          { situation: "DEFECTIVE" },
+          { where: { id: productId } }
+        );
+        await Component.update(
+          { situation: "DEFECTIVE" },
+          { where: { id: componentId } }
+        );
+      } else {
+        await Product.update(
+          { situation: "GOOD" },
+          { where: { id: productId } }
+        );
+        await Component.update(
+          { situation: "GOOD" },
+          { where: { id: componentId } }
+        );
+      }
+    }
 
     res.send({ result: "success" });
   } catch (error) {
@@ -254,7 +306,7 @@ export async function getComponentDetail(req, res, next) {
     const [component, events, issues] = await Promise.all([
       Component.findOne({
         where: { id: id },
-        include: [{ model: Product }],
+        include: [{ model: Product, include: { model: Customer } }],
       }),
       Event.findAndCountAll({
         where: { component_id: id },

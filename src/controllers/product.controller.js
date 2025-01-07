@@ -125,56 +125,41 @@ export async function getListProductInTree(req, res, next) {
       ].filter(Boolean),
     };
 
-    let products;
+    // let products;
 
-    let total = 0;
+    // let total = 0;
 
-    if (!isValidNumber(limit) || !isValidNumber(page)) {
-      page = undefined;
-      limit = undefined;
+    const buildIncludeTree = (depth = 3) => {
+      if (depth === 0) return [];
 
-      products = await Product.findAndCountAll({
+      return [
+        {
+          model: Issue,
+          as: "issues",
+        },
+        {
+          model: Component,
+          as: "children",
+          include: buildIncludeTree(depth - 1), // Recursively build the include tree
+        },
+      ];
+    };
+
+    const fetchProducts = async (conditions, limit, page) => {
+      const isPaginated = isValidNumber(limit) && isValidNumber(page);
+
+      if (isPaginated) {
+        limit = _.toNumber(limit);
+        page = _.toNumber(page);
+      } else {
+        limit = undefined;
+        page = undefined;
+      }
+
+      const products = await Product.findAndCountAll({
         where: conditions,
-        order: [["id", "DESC"]],
-        include: [
-          {
-            model: Component,
-            as: "components",
-            include: [
-              {
-                model: Issue,
-                as: "issues",
-              },
-              {
-                model: Component,
-                as: "children",
-                include: [
-                  {
-                    model: Issue,
-                    as: "issues",
-                  },
-                  {
-                    model: Component,
-                    as: "children",
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            model: Issue,
-            as: "issues",
-          },
-        ],
-      });
-    } else {
-      limit = _.toNumber(limit);
-      page = _.toNumber(page);
-
-      products = await Product.findAndCountAll({
-        where: conditions,
-        limit,
-        offset: limit * page,
+        limit: isPaginated ? limit : undefined,
+        offset: isPaginated ? limit * page : undefined,
         order: [["id", "DESC"]],
         include: [
           {
@@ -182,26 +167,7 @@ export async function getListProductInTree(req, res, next) {
             required: false, // Makes it a LEFT OUTER JOIN
             where: { level: 1 },
             as: "components",
-            include: [
-              {
-                model: Issue,
-                as: "issues",
-              },
-              {
-                model: Component,
-                as: "children",
-                include: [
-                  {
-                    model: Issue,
-                    as: "issues",
-                  },
-                  {
-                    model: Component,
-                    as: "children",
-                  },
-                ],
-              },
-            ],
+            include: buildIncludeTree(3), // Dynamically build the include tree up to 3 levels deep
           },
           {
             model: Issue,
@@ -210,14 +176,35 @@ export async function getListProductInTree(req, res, next) {
         ],
       });
 
-      total = await Product.count({
-        where: conditions,
-        limit,
-        offset: limit * page,
-      });
-    }
+      let total = undefined;
+      if (isPaginated) {
+        total = await Product.count({
+          where: conditions,
+          limit,
+          offset: limit * page,
+        });
+      }
+
+      return { products, total };
+    };
+
+    // Usage
+    let { products, total } = await fetchProducts(conditions, limit, page);
 
     let uniqueKeyCounter = 1; // Initialize a global counter for unique keys
+
+    const countIssues = (component) => {
+      // Count issues for the current component and its children recursively
+      const currentIssuesCount =
+        component.issues?.filter((is) => is?.status != "PROCESSED")?.length ||
+        0;
+      const childrenIssuesCount = (component.children || []).reduce(
+        (sum, child) => sum + countIssues(child),
+        0
+      );
+
+      return currentIssuesCount + childrenIssuesCount;
+    };
 
     const formatTreeWithPaths = async (components) =>
       Promise.all(
@@ -226,6 +213,7 @@ export async function getListProductInTree(req, res, next) {
           data: {
             ...component.toJSON(),
             fullPath: await component.getComponentPath(),
+            count: countIssues(component), // Add the total issue count
           },
           children: await formatTreeWithPaths(component.children || []),
         }))

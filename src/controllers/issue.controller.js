@@ -140,35 +140,55 @@ export async function createIssue(req, res, next) {
       })
     );
 
-    const updateSituation = async (situation) => {
+    const updateSituation = async (model, id, situation) => {
+      await model.update({ situation }, { where: { id } });
+    };
+
+    const updateSituations = async (
+      productId,
+      componentId,
+      productSituation,
+      componentSituation
+    ) => {
       await Promise.all([
-        Product.update({ situation }, { where: { id: productId } }),
-        Component.update({ situation }, { where: { id: componentId } }),
+        updateSituation(Product, productId, productSituation),
+        updateSituation(Component, componentId, componentSituation),
       ]);
     };
 
-    if (status !== "PROCESSED") {
-      await updateSituation("DEFECTIVE");
+    const component = await Component.findOne({ where: { id: componentId } });
 
-      if (!stopFighting) {
-        const stopFightingCount = await Issue.count({
-          where: { product_id: productId, stop_fighting: true },
-        });
+    if (component.toJSON()?.temporarily_use == "NO") {
+      if (status !== "PROCESSED") {
+        await updateSituations(
+          productId,
+          componentId,
+          "DEFECTIVE",
+          "DEFECTIVE"
+        );
+      } else {
+        const [processedProduct, processedComponent] = await Promise.all([
+          Issue.count({
+            where: { product_id: productId, status: { [Op.ne]: "PROCESSED" } },
+          }),
+          Issue.count({
+            where: {
+              component_id: componentId,
+              status: { [Op.ne]: "PROCESSED" },
+            },
+          }),
+        ]);
 
-        if (stopFightingCount > 0) {
-          await updateSituation("DEFECTIVE");
-        } else {
-          await updateSituation("DEGRADED");
+        if (processedProduct === 0) {
+          await updateSituation(Product, productId, "GOOD");
+        }
+
+        if (processedComponent === 0) {
+          await updateSituation(Component, componentId, "GOOD");
         }
       }
     } else {
-      const processedIssueCount = await Issue.count({
-        where: { product_id: productId, status: { [Op.ne]: "PROCESSED" } },
-      });
-
-      if (processedIssueCount === 0) {
-        await updateSituation("GOOD");
-      }
+      await updateSituation(Product, productId, "DEGRADED");
     }
 
     res.send({ result: "success", issue: newIssue });
@@ -356,6 +376,7 @@ export async function getListIssue(req, res, next) {
 
 export async function updateIssue(req, res, next) {
   const {
+    temporarilyUse,
     id,
     componentId,
     customerId,
@@ -423,6 +444,7 @@ export async function updateIssue(req, res, next) {
 
     await issue.update(
       removeEmptyFields({
+        temporarily_use: temporarilyUse,
         component_id: componentId,
         customer_id: customerId,
         product_id: productId,
@@ -473,35 +495,55 @@ export async function updateIssue(req, res, next) {
       })
     );
 
-    const updateSituation = async (situation) => {
+    const updateSituation = async (model, id, situation) => {
+      await model.update({ situation }, { where: { id } });
+    };
+
+    const updateSituations = async (
+      productId,
+      componentId,
+      productSituation,
+      componentSituation
+    ) => {
       await Promise.all([
-        Product.update({ situation }, { where: { id: productId } }),
-        Component.update({ situation }, { where: { id: componentId } }),
+        updateSituation(Product, productId, productSituation),
+        updateSituation(Component, componentId, componentSituation),
       ]);
     };
 
-    if (status !== "PROCESSED") {
-      await updateSituation("DEFECTIVE");
+    const component = await Component.findOne({ where: { id: componentId } });
 
-      if (!stopFighting) {
-        const stopFightingCount = await Issue.count({
-          where: { product_id: productId, stop_fighting: true },
-        });
+    if (component.toJSON()?.temporarily_use == "NO") {
+      if (status !== "PROCESSED") {
+        await updateSituations(
+          productId,
+          componentId,
+          "DEFECTIVE",
+          "DEFECTIVE"
+        );
+      } else {
+        const [processedProduct, processedComponent] = await Promise.all([
+          Issue.count({
+            where: { product_id: productId, status: { [Op.ne]: "PROCESSED" } },
+          }),
+          Issue.count({
+            where: {
+              component_id: componentId,
+              status: { [Op.ne]: "PROCESSED" },
+            },
+          }),
+        ]);
 
-        if (stopFightingCount > 0) {
-          await updateSituation("DEFECTIVE");
-        } else {
-          await updateSituation("DEGRADED");
+        if (processedProduct === 0) {
+          await updateSituation(Product, productId, "GOOD");
+        }
+
+        if (processedComponent === 0) {
+          await updateSituation(Component, componentId, "GOOD");
         }
       }
     } else {
-      const processedIssueCount = await Issue.count({
-        where: { product_id: productId, status: { [Op.ne]: "PROCESSED" } },
-      });
-
-      if (processedIssueCount === 0) {
-        await updateSituation("GOOD");
-      }
+      await updateSituation(Product, productId, "DEGRADED");
     }
 
     res.send({ result: "success" });

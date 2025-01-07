@@ -20,6 +20,11 @@ export const Component = database.define(
     version: { type: DataTypes.STRING },
     status: { type: DataTypes.STRING },
     situation: { type: DataTypes.STRING },
+    temporarily_use: {
+      type: DataTypes.STRING,
+      comment: "Tạm dùng",
+      // defaultValue: "NO",
+    },
   },
   { timestamps: false }
 );

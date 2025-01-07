@@ -141,6 +141,11 @@ export const Issue = database.define(
       type: DataTypes.BIGINT.UNSIGNED,
       comment: "Số lượng sản phẩm lỗi",
     },
+    // temporarily_use: {
+    //   type: DataTypes.STRING,
+    //   comment: "Tạm dùng",
+    //   defaultValue: "NO",
+    // },
   },
   { timestamps: false }
 );
