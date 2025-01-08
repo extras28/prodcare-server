@@ -71,13 +71,15 @@ export async function createComponent(req, res, next) {
 
     const promises = [Component.create(newComponentData)];
 
-    if (temporarilyUse === "YES") {
-      promises.push(
-        Product.update({ situation: "DEGRADED" }, { where: { id: productId } })
-      );
-    }
+    // if (temporarilyUse === "YES") {
+    //   promises.push(
+    //     Product.update({ situation: "DEGRADED" }, { where: { id: productId } })
+    //   );
+    // }
 
     const [newComponent] = await Promise.all(promises);
+
+    await updateProductSituation(productId);
 
     res.send({ result: "success", component: newComponent });
   } catch (error) {
@@ -239,10 +241,6 @@ export async function updateComponent(req, res, next) {
     });
 
     if (temporarilyUse == "YES") {
-      await Product.update(
-        { situation: "DEGRADED" },
-        { where: { id: productId } }
-      );
       await Issue.update(
         { temporarily_use: "YES" },
         { where: { component_id: componentId } }
@@ -257,25 +255,19 @@ export async function updateComponent(req, res, next) {
       });
 
       if (issueProcessedCount > 0) {
-        await Product.update(
-          { situation: "DEFECTIVE" },
-          { where: { id: productId } }
-        );
         await Component.update(
           { situation: "DEFECTIVE" },
           { where: { id: componentId } }
         );
       } else {
-        await Product.update(
-          { situation: "GOOD" },
-          { where: { id: productId } }
-        );
         await Component.update(
           { situation: "GOOD" },
           { where: { id: componentId } }
         );
       }
     }
+
+    await updateProductSituation(component.toJSON().product_id);
 
     res.send({ result: "success" });
   } catch (error) {
@@ -328,4 +320,33 @@ export async function getComponentDetail(req, res, next) {
   } catch (error) {
     next(error);
   }
+}
+
+async function updateProductSituation(productId) {
+  const defectiveComponentCount = await Component.count({
+    where: { product_id: productId, situation: "DEFECTIVE" },
+  });
+  const degradedComponentCount = await Component.count({
+    where: { product_id: productId, situation: "DEGRADED" },
+  });
+
+  if (defectiveComponentCount > 0) {
+    await Product.update(
+      { situation: "DEFECTIVE" },
+      { where: { id: productId } }
+    );
+
+    return;
+  }
+
+  if (degradedComponentCount > 0) {
+    await Product.update(
+      { situation: "DEGRADED" },
+      { where: { id: productId } }
+    );
+
+    return;
+  }
+
+  await Product.update({ situation: "GOOD" }, { where: { id: productId } });
 }

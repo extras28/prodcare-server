@@ -24,8 +24,8 @@ async function start() {
     console.log("Connected to database.");
 
     // await database.sync({ force: true });
-    // await database.sync({ alter: true });
-    await database.sync();
+    await database.sync({ alter: true });
+    // await database.sync();
     // await database.drop();
     console.log("All models are sync.");
   } catch (error) {

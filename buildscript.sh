@@ -45,6 +45,6 @@ else
     sudo docker images
     sudo docker save -o prodcare.tar prodcare:latest
     # sudo openvpn guest-1.ovpn
-    sudo scp prodcare.tar developer@112.10.0.100:/home/developer/dungna31
-    ssh -t developer@112.10.0.100 'cd /home/developer/dungna31/prodcare && chmod +x buildscript.sh && sudo ./buildscript.sh && exec bash'
+    sudo scp prodcare.tar vea@192.168.1.231:/home/vea/dungna31
+    # ssh -t developer@112.10.0.100 'cd /home/developer/dungna31/prodcare && chmod +x buildscript.sh && sudo ./buildscript.sh && exec bash'
 fi
