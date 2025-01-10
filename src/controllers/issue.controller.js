@@ -149,12 +149,12 @@ export async function createIssue(req, res, next) {
     if (processIssueCount == 0) {
       await component.update({ temporarily_use: "NO", situation: "GOOD" });
     } else {
-      if (component.toJSON()?.temporarily_use == "NO") {
-        component.update({ situation: "DEFECTIVE" });
+      if (component?.temporarily_use == "NO") {
+        await component.update({ situation: "DEFECTIVE" });
       }
     }
 
-    updateProductSituation(component.toJSON().product_id);
+    await updateProductSituation(component.toJSON().product_id);
 
     res.send({ result: "success", issue: newIssue });
   } catch (error) {
@@ -469,12 +469,12 @@ export async function updateIssue(req, res, next) {
     if (processIssueCount == 0) {
       await component.update({ temporarily_use: "NO", situation: "GOOD" });
     } else {
-      if (component.toJSON()?.temporarily_use == "NO") {
-        component.update({ situation: "DEFECTIVE" });
+      if (component?.temporarily_use == "NO") {
+        await component.update({ situation: "DEFECTIVE" });
       }
     }
 
-    updateProductSituation(component.toJSON().product_id);
+    await updateProductSituation(component.toJSON().product_id);
 
     res.send({ result: "success" });
   } catch (error) {
@@ -488,9 +488,43 @@ export async function deleteIssue(req, res, next) {
 
     if (!_.isArray(issueIds)) throw new Error(ERROR_INVALID_PARAMETERS);
 
+    const issues = await Issue.findAll({
+      where: { id: { [Op.in]: issueIds } },
+      include: { model: Component, as: "component" },
+    });
+
+    const components = issues.map((item) => item?.component);
+
     let deleteCount = await Issue.destroy({
       where: { id: { [Op.in]: issueIds } },
     });
+
+    for (const component of components) {
+      if (!component) continue; // Skip if the component is not found
+
+      const processIssueCount = await Issue.count({
+        where: {
+          status: { [Op.ne]: "PROCESSED" },
+          component_id: component?.id,
+        },
+      });
+
+      if (processIssueCount === 0) {
+        await Component.update(
+          { temporarily_use: "NO", situation: "GOOD" },
+          { where: { id: component?.id } }
+        );
+      } else {
+        if (component.temporarily_use === "NO") {
+          await Component.update(
+            { situation: "DEFECTIVE" },
+            { where: { id: component?.id } }
+          );
+        }
+      }
+
+      updateProductSituation(component.toJSON().product_id);
+    }
 
     res.send({ result: "success", deleteCount });
   } catch (error) {

@@ -10,12 +10,12 @@ if [ "$1" == "server" ]; then
     sudo docker images
     sudo docker save -o prodcare.tar prodcare:latest
     # sudo openvpn guest-1.ovpn
-    sudo scp prodcare.tar developer@112.10.0.100:/home/developer/dungna31
-    ssh -t developer@112.10.0.100 'cd /home/developer/dungna31/prodcare && chmod +x buildscript.sh && sudo ./buildscript.sh && exec bash'
+    scp -i /home/dungna31/.ssh/id_rsa prodcare.tar vea@112.11.0.1:/home/vea/dungna31/prodcare
+    ssh -i /home/dungna31/.ssh/id_rsa -t vea@112.11.0.1 'cd /home/vea/dungna31/prodcare && sudo chmod +x buildscript.sh && sudo ./buildscript.sh && exec bash'
     
 elif [ "$1" == "product" ]; then 
     echo "Building product..."
-    ssh -t developer@112.10.0.100 'cd /home/developer/dungna31/prodcare && chmod +x buildscript.sh && sudo ./buildscript.sh && exec bash'
+    ssh -i /home/dungna31/.ssh/id_rsa -t vea@112.11.0.1 'cd /home/vea/dungna31/prodcare && sudo chmod +x buildscript.sh && sudo ./buildscript.sh && exec bash'
 
 else
     # Build and deploy the client
@@ -44,7 +44,6 @@ else
     sudo docker build -t prodcare .
     sudo docker images
     sudo docker save -o prodcare.tar prodcare:latest
-    # sudo openvpn guest-1.ovpn
-    sudo scp prodcare.tar vea@192.168.1.231:/home/vea/dungna31
-    # ssh -t developer@112.10.0.100 'cd /home/developer/dungna31/prodcare && chmod +x buildscript.sh && sudo ./buildscript.sh && exec bash'
+    scp -i /home/dungna31/.ssh/id_rsa prodcare.tar vea@112.11.0.1:/home/vea/dungna31/prodcare
+    ssh -i /home/dungna31/.ssh/id_rsa -t vea@112.11.0.1 'cd /home/vea/dungna31/prodcare && sudo chmod +x buildscript.sh && sudo ./buildscript.sh && exec bash'
 fi

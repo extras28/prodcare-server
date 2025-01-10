@@ -5,6 +5,7 @@ import { Component } from "../models/component.model.js";
 import { Event } from "../models/event.model.js";
 import { Issue } from "../models/issue.model.js";
 import { Product } from "../models/product.model.js";
+import * as XLSX from "xlsx";
 import {
   ERROR_COMPONENT_EXISTED,
   ERROR_COMPONENT_NOT_EXISTED,
@@ -67,6 +68,7 @@ export async function createComponent(req, res, next) {
       version,
       status: status || (temporarilyUse === "YES" ? "DEGRADED" : ""),
       temporarily_use: temporarilyUse,
+      situation: temporarilyUse == "YES" ? "DEGRADED" : "GOOD",
     });
 
     const promises = [Component.create(newComponentData)];
@@ -208,6 +210,16 @@ export async function updateComponent(req, res, next) {
   } = req.body;
 
   try {
+    const existedComponent = await Component.findOne({
+      where: { serial: serial },
+    });
+
+    if (
+      !!existedComponent &&
+      normalizeString(existedComponent.toJSON()?.serial) != "thieuserial"
+    )
+      throw new Error(ERROR_COMPONENT_EXISTED);
+
     let component = await Component.findOne({
       where: { id: componentId },
     });
@@ -235,7 +247,7 @@ export async function updateComponent(req, res, next) {
         version,
         status,
         temporarily_use: temporarilyUse,
-        situation: temporarilyUse == "YES" ? "DEGRADED" : "",
+        situation: temporarilyUse == "YES" ? "DEGRADED" : "GOOD",
       }),
       description,
     });
@@ -349,4 +361,17 @@ async function updateProductSituation(productId) {
   }
 
   await Product.update({ situation: "GOOD" }, { where: { id: productId } });
+}
+
+export async function readFromExcel(req, res, next) {
+  try {
+    const { projectId } = req.body;
+    const workbook = XLSX.read(req.file.buffer, { type: "buffer" });
+    const sheetName = workbook.SheetNames[1];
+    const sheet = workbook.Sheets[sheetName];
+    const jsonData = XLSX.utils.sheet_to_json(sheet);
+    res.send(jsonData);
+  } catch (error) {
+    next(error);
+  }
 }

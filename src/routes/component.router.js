@@ -3,6 +3,7 @@ import * as componentController from "../controllers/component.controller.js";
 import { authorizationMiddleware } from "../middlewares/authorization.middleware.js";
 import { checkingProjectPm } from "../middlewares/checking_project_pm.middleware.js";
 import { requireAtLeastOperator } from "../middlewares/require_at_least_operator.middleware.js";
+import { uploadWithoutStoreFile } from "../middlewares/file_upload.middleware.js";
 
 export const componentRouter = Router();
 
@@ -39,4 +40,10 @@ componentRouter.get(
   "/component/detail/:id",
   authorizationMiddleware,
   componentController.getComponentDetail
+);
+
+componentRouter.post(
+  "/component/upload",
+  uploadWithoutStoreFile.single("file"),
+  componentController.readFromExcel
 );
