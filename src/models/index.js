@@ -100,16 +100,17 @@ Component.hasMany(Component, {
   sourceKey: "id",
 });
 
+Component.belongsTo(Component, {
+  as: "parent",
+  foreignKey: "parent_id",
+  sourceKey: "id",
+});
+
 Issue.belongsTo(Customer, {
   foreignKey: "customer_id",
   targetKey: "id",
   onDelete: "SET NULL",
 });
-// Customer.hasMany(Customer, {
-//   foreignKey: "customer_id",
-//   sourceKey: "id",
-//   onDelete: "SET NULL",
-// });
 
 Product.belongsTo(Customer, {
   foreignKey: "customer_id",
@@ -159,27 +160,3 @@ Account.hasOne(ShowingIssueColumn, {
   sourceKey: "email",
   onDelete: "CASCADE",
 });
-
-// Reason.belongsTo(Project, {
-//   foreignKey: "project_id",
-//   targetKey: "id",
-//   onDelete: "CASCADE",
-// });
-
-// Project.hasMany(Reason, {
-//   foreignKey: "project_id",
-//   sourceKey: "id",
-//   onDelete: "CASCADE",
-// });
-
-// Reason.hasMany(Issue, {
-//   foreignKey: "reason_id",
-//   sourceKey: "id",
-//   onDelete: "SET NULL",
-// });
-// Issue.belongsTo(Reason, {
-//   foreignKey: "reason_id",
-//   targetKey: "id",
-//   onDelete: "SET NULL",
-//   as: "reasonDetail", // Change 'as' to avoid naming collision
-// });

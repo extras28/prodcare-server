@@ -19,11 +19,11 @@ export const Component = database.define(
     level: { type: DataTypes.INTEGER.UNSIGNED },
     version: { type: DataTypes.STRING },
     status: { type: DataTypes.STRING },
-    situation: { type: DataTypes.STRING },
+    situation: { type: DataTypes.STRING, defaultValue: "GOOD" },
     temporarily_use: {
       type: DataTypes.STRING,
       comment: "Tạm dùng",
-      // defaultValue: "NO",
+      defaultValue: "NO",
     },
   },
   { timestamps: false }

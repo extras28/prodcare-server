@@ -365,12 +365,115 @@ async function updateProductSituation(productId) {
 
 export async function readFromExcel(req, res, next) {
   try {
-    const { projectId } = req.body;
+    const { projectId, productId, level } = req.query;
     const workbook = XLSX.read(req.file.buffer, { type: "buffer" });
-    const sheetName = workbook.SheetNames[1];
-    const sheet = workbook.Sheets[sheetName];
-    const jsonData = XLSX.utils.sheet_to_json(sheet);
-    res.send(jsonData);
+
+    const excludeCells = new Set([
+      "Mất nguồn",
+      "Không khởi động được",
+      "Không hoạt động",
+      "không có tín hiệu",
+      "Chập chờn",
+      "Nứt",
+      "Vênh",
+      "Tín hiệu quang không thông",
+      "Han rỉ",
+      "Bị vào nước",
+      "Móp méo",
+      "Hỏng khối nguồn",
+      "Cháy",
+      "Đứt dây",
+      "không thông",
+      "Vỡ gá kim",
+      "Quay chậm bất thường",
+      "thủng ống tyo hơi",
+      "nổ máy có tiếng kêu bất thường",
+      "Nứt, phồng vỏ",
+      "Không tích điện",
+      "Không có điện áp nạp bù từ máy phát nạp",
+      "Không có điện áp nạp bù từ điện lưới",
+      "Gẫy cánh",
+      "Dây tín hiệu chập chờn",
+      "Gá đế chân chống điện bị gãy chốt",
+      "Gá đế chân chống cơ bị gãy chốt.",
+      "Bị kẹt",
+    ]);
+
+    const createComponents = async (
+      components,
+      parentId = null,
+      componentLevel
+    ) => {
+      const filteredComponents = components.filter(
+        (comp) => !excludeCells.has(comp)
+      );
+      const componentData = filteredComponents.map((name) => ({
+        name,
+        parent_id: parentId,
+        product_id: productId,
+        serial: "thiếu serial",
+        type: "HARDWARE",
+        level: componentLevel,
+        status: "USING",
+      }));
+
+      await Component.bulkCreate(componentData, { ignoreDuplicates: true });
+    };
+
+    const processLevel1 = async () => {
+      const sheetName = workbook.SheetNames[1];
+      const sheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(sheet);
+
+      const componentNames = [
+        Object.keys(jsonData[1])[0],
+        ...jsonData.map((item) => item["HT Thu URS - XLTH  "]),
+      ];
+
+      await createComponents(componentNames, null, 1);
+    };
+
+    const processHigherLevels = async (sheetIndex, componentLevel) => {
+      const sheetName = workbook.SheetNames[sheetIndex];
+      const sheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(sheet);
+
+      const componentsByParent = jsonData.reduce((result, item) => {
+        for (const [key, value] of Object.entries(item)) {
+          if (!result[key]) result[key] = [];
+          result[key].push(value);
+        }
+        return result;
+      }, {});
+
+      for (const [parentName, childComponents] of Object.entries(
+        componentsByParent
+      )) {
+        const parent = await Component.findOne({
+          where: { name: parentName, product_id: productId },
+        });
+
+        if (parent) {
+          await createComponents(childComponents, parent.id, componentLevel);
+        }
+      }
+    };
+
+    switch (parseInt(level, 10)) {
+      case 1:
+        await processLevel1();
+        break;
+      case 2:
+        await processHigherLevels(2, 2);
+        break;
+      case 3:
+        await processHigherLevels(3, 3);
+        break;
+      default:
+        return res.status(400).send({ error: "Invalid level provided." });
+    }
+
+    res.send({ result: "success" });
   } catch (error) {
     next(error);
   }

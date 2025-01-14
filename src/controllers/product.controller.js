@@ -125,10 +125,6 @@ export async function getListProductInTree(req, res, next) {
       ].filter(Boolean),
     };
 
-    // let products;
-
-    // let total = 0;
-
     const buildIncludeTree = (depth = 3) => {
       if (depth === 0) return [];
 
@@ -136,10 +132,12 @@ export async function getListProductInTree(req, res, next) {
         {
           model: Issue,
           as: "issues",
+          attributes: ["status"],
         },
         {
           model: Component,
           as: "children",
+          attributes: { exclude: ["temporarily_use", "category"] },
           include: buildIncludeTree(depth - 1), // Recursively build the include tree
         },
       ];
@@ -164,6 +162,7 @@ export async function getListProductInTree(req, res, next) {
         include: [
           {
             model: Component,
+            attributes: { exclude: ["temporarily_use", "category"] },
             required: false, // Makes it a LEFT OUTER JOIN
             where: { level: 1 },
             as: "components",
@@ -172,6 +171,7 @@ export async function getListProductInTree(req, res, next) {
           {
             model: Issue,
             as: "issues",
+            attributes: ["status"],
           },
         ],
       });
@@ -464,21 +464,51 @@ export async function exportFileAll(req, res, next) {
     productIds = products.map((product) => product.id);
 
     const components = await Component.findAll({
-      where: { product_id: { [Op.in]: productIds } },
+      where: { product_id: { [Op.in]: productIds }, level: 1 },
       order: [["product_id", "DESC"]],
+      attributes: { exclude: ["temporarily_use", "category"] },
       include: [
         {
           model: Product,
           as: "product",
+          attributes: ["name"],
           include: {
             model: Customer,
+            attributes: ["military_region", "name"],
             as: "customer",
           },
         },
-
         {
-          model: Issue,
-          as: "issues",
+          model: Component,
+          as: "children",
+          attributes: { exclude: ["temporarily_use", "category"] },
+          include: [
+            {
+              model: Component,
+              as: "children",
+              attributes: { exclude: ["temporarily_use", "category"] },
+              include: {
+                model: Product,
+                as: "product",
+                attributes: ["name"],
+                include: {
+                  model: Customer,
+                  attributes: ["military_region", "name"],
+                  as: "customer",
+                },
+              },
+            },
+            {
+              model: Product,
+              as: "product",
+              attributes: ["name"],
+              include: {
+                model: Customer,
+                attributes: ["military_region", "name"],
+                as: "customer",
+              },
+            },
+          ],
         },
       ],
     });
