@@ -17,8 +17,8 @@ RUN npm install --production
 # Sao chép mã nguồn vào container
 COPY --chown=node:node . .
 
-# Expose port 8000
-EXPOSE 3001
+# Expose port 3001
+# EXPOSE 3001
 
 # Chạy ứng dụng
 CMD ["node", "src/index.js"]

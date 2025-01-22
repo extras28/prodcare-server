@@ -146,15 +146,17 @@ export async function createIssue(req, res, next) {
       where: { status: { [Op.ne]: "PROCESSED" }, component_id: componentId },
     });
 
-    if (processIssueCount == 0) {
-      await component.update({ temporarily_use: "NO", situation: "GOOD" });
-    } else {
-      if (component?.temporarily_use == "NO") {
-        await component.update({ situation: "DEFECTIVE" });
+    if (!!component) {
+      if (processIssueCount == 0) {
+        await component.update({ temporarily_use: "NO", situation: "GOOD" });
+      } else {
+        if (component?.temporarily_use == "NO") {
+          await component.update({ situation: "DEFECTIVE" });
+        }
       }
-    }
 
-    await updateProductSituation(component.toJSON().product_id);
+      await updateProductSituation(component.toJSON().product_id);
+    }
 
     res.send({ result: "success", issue: newIssue });
   } catch (error) {

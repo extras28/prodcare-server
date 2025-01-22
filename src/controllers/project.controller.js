@@ -79,6 +79,11 @@ export async function getListProject(req, res, next) {
         offset: limit * page,
         order: [["id", "DESC"]],
       });
+      for (const [index, project] of projects.rows.entries()) {
+        // Calculate order number
+        project.dataValues.orderNumber =
+          index + 1 + (isValidNumber(limit) ? limit * page : 0);
+      }
     }
 
     res.send({

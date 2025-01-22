@@ -121,7 +121,6 @@ export async function getListComponent(req, res, next) {
     const conditions = {
       [Op.or]: [
         { serial: { [Op.like]: `%${q}%` } },
-        { category: { [Op.like]: `%${q}%` } },
         { name: { [Op.like]: `%${q}%` } },
         { version: { [Op.like]: `%${q}%` } },
       ],
@@ -132,7 +131,7 @@ export async function getListComponent(req, res, next) {
         !!level ? { level } : undefined,
         !!status ? { status } : undefined,
         !!situation ? { situation } : undefined,
-        { product_id: { [Op.in]: productIds } },
+        !productId ? { product_id: { [Op.in]: productIds } } : undefined,
       ].filter(Boolean),
     };
 
@@ -164,7 +163,6 @@ export async function getListComponent(req, res, next) {
       ],
     };
 
-    // Handle pagination
     if (isValidNumber(limit) && isValidNumber(page)) {
       limit = _.toNumber(limit);
       page = _.toNumber(page);
@@ -172,9 +170,10 @@ export async function getListComponent(req, res, next) {
       queryOptions.offset = limit * page;
     }
 
-    // Fetch components
-    const components = await Component.findAndCountAll(queryOptions);
-
+    const [total, components] = await Promise.all([
+      Component.count({ where: conditions }),
+      Component.findAndCountAll(queryOptions),
+    ]);
     for (const [index, component] of components.rows.entries()) {
       // Calculate order number
       component.dataValues.orderNumber =
@@ -184,7 +183,7 @@ export async function getListComponent(req, res, next) {
     res.send({
       result: "success",
       page,
-      total: components.count,
+      total: total,
       count: components.rows.length,
       components: components.rows,
     });

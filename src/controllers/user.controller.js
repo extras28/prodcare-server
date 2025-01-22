@@ -103,6 +103,12 @@ export async function getListUser(req, res, next) {
         offset: limit * page,
         order: [["email", "DESC"]],
       });
+
+      for (const [index, user] of users.rows.entries()) {
+        // Calculate order number
+        user.dataValues.orderNumber =
+          index + 1 + (isValidNumber(limit) ? limit * page : 0);
+      }
     }
 
     res.send({
