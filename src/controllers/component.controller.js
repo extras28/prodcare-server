@@ -46,7 +46,7 @@ export async function createComponent(req, res, next) {
     )
       throw new Error(ERROR_COMPONENT_EXISTED);
 
-    if (Number(level) > 3) throw new Error(ERROR_MAX_COMPONENT_LEVEL);
+    if (Number(level) > 4) throw new Error(ERROR_MAX_COMPONENT_LEVEL);
 
     if (Number(level) < 1) throw new Error(ERROR_INVALID_COMPONENT_LEVEL);
 
@@ -227,7 +227,7 @@ export async function updateComponent(req, res, next) {
       throw new Error(ERROR_COMPONENT_NOT_EXISTED);
     }
 
-    if (Number(level) > 3) throw new Error(ERROR_MAX_COMPONENT_LEVEL);
+    if (Number(level) > 4) throw new Error(ERROR_MAX_COMPONENT_LEVEL);
 
     if (Number(level) < 1) throw new Error(ERROR_INVALID_COMPONENT_LEVEL);
 

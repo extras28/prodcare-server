@@ -42,5 +42,5 @@ export const ERROR_EMPTY_PROJECT = "Thiếu thông tin dự án";
 export const ERROR_EMPTY_COMPLETION_TIME = "Thiếu thông tin ngày hoàn thành";
 export const ERROR_MFG_IS_AFTER_HANDED_OVER_TIME =
   "Ngày bàn giao phải lớn hơn ngày sản xuất";
-export const ERROR_MAX_COMPONENT_LEVEL = "Cấp thành phần tối đa là 3";
+export const ERROR_MAX_COMPONENT_LEVEL = "Cấp thành phần tối đa là 4";
 export const ERROR_INVALID_COMPONENT_LEVEL = "Cấp thành phần không hợp lệ";
