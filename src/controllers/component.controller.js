@@ -73,12 +73,6 @@ export async function createComponent(req, res, next) {
 
     const promises = [Component.create(newComponentData)];
 
-    // if (temporarilyUse === "YES") {
-    //   promises.push(
-    //     Product.update({ situation: "DEGRADED" }, { where: { id: productId } })
-    //   );
-    // }
-
     const [newComponent] = await Promise.all(promises);
 
     await updateProductSituation(productId);
@@ -364,7 +358,7 @@ async function updateProductSituation(productId) {
 
 export async function readFromExcel(req, res, next) {
   try {
-    const { projectId, productId, level } = req.query;
+    const { productId, level } = req.query;
     const workbook = XLSX.read(req.file.buffer, { type: "buffer" });
 
     const excludeCells = new Set([
