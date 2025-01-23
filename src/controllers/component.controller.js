@@ -358,7 +358,7 @@ async function updateProductSituation(productId) {
 
 export async function readFromExcel(req, res, next) {
   try {
-    const { productId, level } = req.query;
+    const { productId, level, parentId } = req.query;
     const workbook = XLSX.read(req.file.buffer, { type: "buffer" });
 
     const excludeCells = new Set([
@@ -404,7 +404,7 @@ export async function readFromExcel(req, res, next) {
         name,
         parent_id: parentId,
         product_id: productId,
-        serial: "thiếu serial",
+        // serial: "thiếu serial",
         type: "HARDWARE",
         level: componentLevel,
         status: "USING",
@@ -423,7 +423,7 @@ export async function readFromExcel(req, res, next) {
         ...jsonData.map((item) => item["HT Thu URS - XLTH  "]),
       ];
 
-      await createComponents(componentNames, null, 1);
+      await createComponents(componentNames, parentId, 2);
     };
 
     const processHigherLevels = async (sheetIndex, componentLevel) => {
@@ -453,14 +453,14 @@ export async function readFromExcel(req, res, next) {
     };
 
     switch (parseInt(level, 10)) {
-      case 1:
+      case 2:
         await processLevel1();
         break;
-      case 2:
-        await processHigherLevels(2, 2);
-        break;
       case 3:
-        await processHigherLevels(3, 3);
+        await processHigherLevels(2, 3);
+        break;
+      case 4:
+        await processHigherLevels(3, 4);
         break;
       default:
         return res.status(400).send({ error: "Invalid level provided." });
@@ -471,3 +471,51 @@ export async function readFromExcel(req, res, next) {
     next(error);
   }
 }
+
+const cloneComponent = async (req, res) => {
+  const { componentId, productId } = req.params; // componentId: the ID of the component to clone
+
+  try {
+    // Step 1: Fetch the component and its entire hierarchy
+    const component = await Component.findByPk(componentId, {
+      include: {
+        model: Component,
+        as: "children",
+        include: { model: Component, as: "children" }, // Fetch all nested levels
+      },
+    });
+
+    if (!component) {
+      return res.status(404).json({ message: "Component not found" });
+    }
+
+    // Step 2: Recursive function to clone components
+    const cloneHierarchy = async (comp, parentId = null) => {
+      // Clone the current component
+      const clonedComponent = await Component.create({
+        name: comp.name, // Copy relevant fields
+        description: comp.description,
+        product_id: productId, // Associate it with the same product or a new product
+        parent_id: parentId, // Associate with the new parent
+        level: comp.level, // Maintain the level
+        // Add any other fields to copy
+      });
+
+      // Clone each child recursively
+      for (const child of comp.children) {
+        await cloneHierarchy(child, clonedComponent.id);
+      }
+
+      return clonedComponent;
+    };
+
+    // Step 3: Start cloning with the root component
+    const clonedComponent = await cloneHierarchy(component);
+
+    // Step 4: Return the newly created component hierarchy
+    return res.status(201).json(clonedComponent);
+  } catch (error) {
+    console.error("Error cloning component:", error);
+    return res.status(500).json({ message: "Failed to clone component" });
+  }
+};
