@@ -515,7 +515,6 @@ const cloneComponent = async (req, res) => {
     // Step 4: Return the newly created component hierarchy
     return res.status(201).json(clonedComponent);
   } catch (error) {
-    console.error("Error cloning component:", error);
-    return res.status(500).json({ message: "Failed to clone component" });
+    next(error);
   }
 };
