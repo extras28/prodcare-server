@@ -22,7 +22,11 @@ dashboardRouter.get(
   dashboardController.getStatisticThroughMonth
 );
 
-dashboardRouter.post("/dashboard/update", dashboardController.updateMultiIssue);
+dashboardRouter.post(
+  "/dashboard/update",
+  authorizationMiddleware,
+  dashboardController.updateMultiIssue
+);
 
 dashboardRouter.get(
   "/dashboard/year-multi-project",

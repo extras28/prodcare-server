@@ -8,58 +8,40 @@ import { requireAtLeastOperator } from "../middlewares/require_at_least_operator
 export const issueRouter = Router();
 
 issueRouter.post(
-  "/issue/create",
-  authorizationMiddleware,
-  checkingProjectPm,
-  requireAtLeastOperator,
-  issueController.createIssue
+    "/issue/create",
+    authorizationMiddleware,
+    checkingProjectPm,
+    requireAtLeastOperator,
+    issueController.createIssue
 );
 
-issueRouter.get(
-  "/issue/find",
-  authorizationMiddleware,
-  issueController.getListIssue
-);
+issueRouter.get("/issue/find", authorizationMiddleware, issueController.getListIssue);
 
 issueRouter.put(
-  "/issue/update",
-  authorizationMiddleware,
-  checkingProjectPm,
-  requireAtLeastOperator,
-  issueController.updateIssue
+    "/issue/update",
+    authorizationMiddleware,
+    checkingProjectPm,
+    requireAtLeastOperator,
+    issueController.updateIssue
 );
 
-issueRouter.delete(
-  "/issue/delete",
-  authorizationMiddleware,
-  requireAtLeastOperator,
-  issueController.deleteIssue
-);
+issueRouter.delete("/issue/delete", authorizationMiddleware, requireAtLeastOperator, issueController.deleteIssue);
 
-issueRouter.post(
-  "/issue/upload",
-  // authorizationMiddleware,
-  // checkingProjectPm,
-  // requireAtLeastOperator,
-  uploadWithoutStoreFile.single("file"),
-  issueController.uploadExcelFile
-);
+// issueRouter.post(
+//     "/issue/upload",
+//     // authorizationMiddleware,
+//     // checkingProjectPm,
+//     // requireAtLeastOperator,
+//     uploadWithoutStoreFile.single("file"),
+//     issueController.uploadExcelFile
+// );
 
-issueRouter.get(
-  "/issue/detail/:issueId",
-  authorizationMiddleware,
-  issueController.getIssueDetail
-);
+issueRouter.get("/issue/detail/:issueId", authorizationMiddleware, issueController.getIssueDetail);
 
-issueRouter.get(
-  "/issue/reason",
-  authorizationMiddleware,
-  issueController.getListOfReason
-);
+issueRouter.get("/issue/reason", authorizationMiddleware, issueController.getListOfReason);
 
-issueRouter.post(
-  "/issue/swap",
-  issueController.swapHandlingMeasureAndHandlingPlan
-);
+// issueRouter.post("/issue/swap", issueController.swapHandlingMeasureAndHandlingPlan);
 
 issueRouter.put("/issue/situation", issueController.createSituation);
+
+// issueRouter.post("/issue/file", uploadWithoutStoreFile.single("file"), issueController.readIssueFromFile);

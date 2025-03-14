@@ -8,42 +8,34 @@ import { uploadWithoutStoreFile } from "../middlewares/file_upload.middleware.js
 export const componentRouter = Router();
 
 componentRouter.post(
-  "/component/create",
-  authorizationMiddleware,
-  checkingProjectPm,
-  requireAtLeastOperator,
-  componentController.createComponent
+    "/component/create",
+    authorizationMiddleware,
+    checkingProjectPm,
+    requireAtLeastOperator,
+    componentController.createComponent
 );
 
-componentRouter.get(
-  "/component/find",
-  authorizationMiddleware,
-  componentController.getListComponent
-);
+componentRouter.get("/component/find", authorizationMiddleware, componentController.getListComponent);
 
 componentRouter.put(
-  "/component/update",
-  authorizationMiddleware,
-  checkingProjectPm,
-  requireAtLeastOperator,
-  componentController.updateComponent
+    "/component/update",
+    authorizationMiddleware,
+    checkingProjectPm,
+    requireAtLeastOperator,
+    componentController.updateComponent
 );
 
 componentRouter.delete(
-  "/component/delete",
-  authorizationMiddleware,
-  requireAtLeastOperator,
-  componentController.deleteComponent
+    "/component/delete",
+    authorizationMiddleware,
+    requireAtLeastOperator,
+    componentController.deleteComponent
 );
 
-componentRouter.get(
-  "/component/detail/:id",
-  authorizationMiddleware,
-  componentController.getComponentDetail
-);
+componentRouter.get("/component/detail/:id", authorizationMiddleware, componentController.getComponentDetail);
 
-componentRouter.post(
-  "/component/upload",
-  uploadWithoutStoreFile.single("file"),
-  componentController.readFromExcel
-);
+// componentRouter.post("/component/upload", uploadWithoutStoreFile.single("file"), componentController.readFromExcel);
+
+// componentRouter.post("/component/clone", componentController.cloneRecord);
+
+componentRouter.get("/component/children/:id", componentController.getChildrenById);
